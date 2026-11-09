@@ -2,12 +2,14 @@
   "name": "backend_superheroes_segunda",
   "version": "1.0.0",
   "description": "Aplicación web para registrar héroes con poderes poco espectaculares pero muy útiles: **Capitán Wifi**, **Doctor Cargador**, **Señora Táper**…",
-  "main": "index.js",
+  "main": "src/index.js",
   "directories": {
     "doc": "docs"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
   },
   "repository": {
     "type": "git",
@@ -16,9 +18,15 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/LdMe/backend_superheroes_segunda/issues"
   },
-  "homepage": "https://github.com/LdMe/backend_superheroes_segunda#readme"
+  "homepage": "https://github.com/LdMe/backend_superheroes_segunda#readme",
+  "dependencies": {
+    "dotenv": "^18.0.10",
+    "express": "^5.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
 }
