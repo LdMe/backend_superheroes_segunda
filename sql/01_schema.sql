@@ -21,7 +21,7 @@ DROP TABLE IF EXISTS users;
 --  users: personas registradas en la aplicación
 -- ---------------------------------------------------------------------
 CREATE TABLE users (
-    id          SERIAL       PRIMARY KEY,
+    user_id          SERIAL       PRIMARY KEY,
     username    VARCHAR(50)  NOT NULL UNIQUE,
     email       VARCHAR(100) NOT NULL UNIQUE,
     password    VARCHAR(255) NOT NULL,                -- hash de bcrypt, nunca texto plano
@@ -35,7 +35,7 @@ CREATE TABLE users (
 --  powers: catálogo de poderes (lo gestiona el admin)
 -- ---------------------------------------------------------------------
 CREATE TABLE powers (
-    id          SERIAL       PRIMARY KEY,
+    power_id          SERIAL       PRIMARY KEY,
     name        VARCHAR(80)  NOT NULL UNIQUE,
     description TEXT,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -47,13 +47,13 @@ CREATE TABLE powers (
 --  Relación 1:N  ->  un usuario crea muchos héroes
 -- ---------------------------------------------------------------------
 CREATE TABLE heroes (
-    id            SERIAL       PRIMARY KEY,
+    hero_id            SERIAL       PRIMARY KEY,
     name          VARCHAR(80)  NOT NULL UNIQUE,
     description   TEXT,
     utility_level SMALLINT     NOT NULL DEFAULT 5
                   CHECK (utility_level BETWEEN 1 AND 10),
     user_id       INTEGER      NOT NULL
-                  REFERENCES users(id) ON DELETE CASCADE,
+                  REFERENCES users(user_id) ON DELETE CASCADE,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -68,9 +68,9 @@ CREATE INDEX idx_heroes_user_id ON heroes(user_id);
 -- ---------------------------------------------------------------------
 CREATE TABLE hero_powers (
     hero_id     INTEGER      NOT NULL
-                REFERENCES heroes(id) ON DELETE CASCADE,
+                REFERENCES heroes(hero_id) ON DELETE CASCADE,
     power_id    INTEGER      NOT NULL
-                REFERENCES powers(id) ON DELETE CASCADE,
+                REFERENCES powers(power_id) ON DELETE CASCADE,
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     PRIMARY KEY (hero_id, power_id)

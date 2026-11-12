@@ -2,8 +2,8 @@
     <h3><%= user.username %></h3>
     <p>Email: <%= user.email %></p>
     <p>Rol: <%= user.role %></p>
-    <a href="/user/<%=user.id%>">Visitar</a>
-    <form method="post" action="/user/<%=user.id%>/delete">
+    <a href="/user/<%=user.userId%>">Visitar</a>
+    <form method="post" action="/user/<%=user.userId%>/delete">
         <button>Eliminar</button>
     </form>
 
