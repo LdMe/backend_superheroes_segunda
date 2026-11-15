@@ -6,14 +6,15 @@ import connection from "./config/db.js";
 
 dotenv.config();
 
-const PORT = 3000;
+// dentro del contenedor la app escucha en el 3000 (docker-compose lo publica en APP_PORT)
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 
 // Middlewares 
 app.use(cors())
 app.use(express.json()) // permite leer el body de los POST en json
-app.use(express.urlencoded()) // permite leer el body de los POST en formularios
+app.use(express.urlencoded({ extended: true })) // permite leer el body de los POST en formularios
 
 app.use(express.static("public"));
 
@@ -30,14 +31,17 @@ async function startServer() {
             await connection.authenticate();
             console.log("Conexión establecida con la base de datos");
             app.listen(PORT, () => {
-                console.log("Aplicación en marcha")
+                console.log(`Aplicación en marcha en el puerto ${PORT}`)
             })
             break;
         } catch (error) {
-            console.error(`Intento ${maxAttempts - attempts} No se ha podido conectar a la base de datos`, error);
+            console.error(`Intento ${maxAttempts - attempts + 1}: no se ha podido conectar a la base de datos`, error.message);
         }
         attempts--;
-        await new Promise((resolve,reject)=>setTimeout(()=>{resolve()},5000));
+        if (attempts > 0) {
+            // esperamos 5 segundos antes de volver a intentarlo (la BD puede estar arrancando)
+            await new Promise((resolve) => setTimeout(resolve, 5000));
+        }
     }
     if(attempts === 0){
         console.error(`no se ha podido conectar a la base de datos en ${maxAttempts} intentos`);

@@ -1,0 +1,12 @@
+<%- include('../layout/header', { title: 'Poderes' }); -%>
+
+<h2>Poderes</h2>
+<a class="button" href="/power/new">Nuevo poder</a>
+
+<section class="cards">
+    <% for (const power of powers) { %>
+        <%- include('powerCard', { power }) -%>
+    <% } %>
+</section>
+
+<%- include('../layout/footer'); -%>

@@ -6,35 +6,46 @@ const router = Router();
 // ------------------ CRUD de hero ----------------------------
 
 // ------------------ C (Create)
-// endpoint para crear dato
 
 // vista de formulario
-router.get("/new",heroViewController.createForm);
+// ¡ojo! tiene que ir antes que "/:id", si no Express tomaría "new" como un id
+router.get("/new", heroViewController.createForm);
 
 // creación de dato
-router.post("/",heroViewController.create);
+router.post("/", heroViewController.create);
 
 // ------------------ R (Read)---------------------------------------------
-// endpoint lista de datos
-router.get("/",heroViewController.getAll);
+// lista de héroes
+router.get("/", heroViewController.getAll);
 
-// endpoint dato individual
-router.get("/:id", heroViewController.getById)
+// ficha de un héroe
+router.get("/:id", heroViewController.getById);
 
 // ---------------- U (Update) -----------------------------------
 
-// vista de actualización de usuario
-router.get("/:id/edit",heroViewController.updateForm);
+// vista de edición del héroe
+router.get("/:id/edit", heroViewController.updateForm);
 
-// endpoint para cambiar dato por completo
-router.post("/:id/edit",heroViewController.update)
-
+// guardar los cambios
+router.post("/:id/edit", heroViewController.update);
 
 
 // ------------------------ D (Delete)------------
+// los formularios HTML solo envían GET y POST, por eso borramos con POST
+
+router.post("/:id/delete", heroViewController.remove);
 
 
-router.post("/:id/delete",heroViewController.remove)
+// ------------------------ Poderes del héroe (N:M) ------------
+
+// asignar un poder existente (el powerId llega en el body)
+router.post("/:id/powers", heroViewController.addPower);
+
+// crear un poder nuevo y asignárselo
+router.post("/:id/powers/new", heroViewController.createPower);
+
+// quitar un poder
+router.post("/:id/powers/:powerId/delete", heroViewController.removePower);
 
 
 export default router;

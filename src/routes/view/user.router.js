@@ -6,33 +6,32 @@ const router = Router();
 // ------------------ CRUD de user ----------------------------
 
 // ------------------ C (Create)
-// endpoint para crear dato
 
-// vista de formulario
+// vista de formulario (antes que "/:id")
 router.get("/new",userViewController.createForm);
 
 // creación de dato
 router.post("/",userViewController.create);
 
 // ------------------ R (Read)---------------------------------------------
-// endpoint lista de datos
+// lista de usuarios
 router.get("/",userViewController.getAll);
 
-// endpoint dato individual
+// ficha de un usuario
 router.get("/:id", userViewController.getById)
 
 // ---------------- U (Update) -----------------------------------
 
-// vista de actualización de usuario
+// vista de edición del usuario
 router.get("/:id/edit",userViewController.updateForm);
 
-// endpoint para cambiar dato por completo
+// guardar los cambios
 router.post("/:id/edit",userViewController.update)
 
 
 
 // ------------------------ D (Delete)------------
-
+// los formularios HTML solo envían GET y POST, por eso borramos con POST
 
 router.post("/:id/delete",userViewController.remove)
 

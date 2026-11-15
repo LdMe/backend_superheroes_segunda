@@ -1,0 +1,31 @@
+<%- include('../layout/header', { title: 'Editar usuario' }); -%>
+
+<h2>Editar usuario</h2>
+<%- include('../layout/error') -%>
+
+<form action="/user/<%= user.userId %>/edit" method="post">
+    <label for="username">Nombre de usuario</label>
+    <input type="text" name="username" id="username" value="<%= user.username %>" required>
+
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" value="<%= user.email %>" required>
+
+    <label for="role">Rol</label>
+    <select name="role" id="role">
+        <% for (const role of roles) { %>
+            <option value="<%= role %>" <%= role === user.role ? "selected" : "" %>><%= role %></option>
+        <% } %>
+    </select>
+
+    <%# Nunca mostramos la contraseña actual: si se deja vacía, no se cambia %>
+    <label for="password">Nueva contraseña (déjala vacía para no cambiarla)</label>
+    <input type="password" name="password" id="password">
+
+    <label for="passwordRepeat">Repetir nueva contraseña</label>
+    <input type="password" name="passwordRepeat" id="passwordRepeat">
+
+    <button>Guardar</button>
+</form>
+
+<a href="/user/<%= user.userId %>">Volver</a>
+<%- include('../layout/footer'); -%>

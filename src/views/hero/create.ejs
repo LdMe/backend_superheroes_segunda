@@ -1,15 +1,27 @@
-<%- include('../layout/header'); -%>
+<%- include('../layout/header', { title: 'Nuevo héroe' }); -%>
 
-<h2> Nuevo héroe:</h2>
+<h2>Nuevo héroe</h2>
+<%- include('../layout/error') -%>
+
 <form action="/hero" method="post">
     <label for="name">Nombre de héroe</label>
-    <input type="text" name="name" id="name">
+    <input type="text" name="name" id="name" value="<%= hero.name %>" required>
+
     <label for="description">Descripción</label>
-    <textarea  id="description" name="description"></textarea>  
-    
-    <label for="utility_level">Nivel de utilidad</label>
-    <input type="number" name="utility_level" id="utility_level" min="0" max="10">
+    <textarea id="description" name="description"><%= hero.description %></textarea>
+
+    <%# Sin login todavía, elegimos el creador a mano. Más adelante saldrá del usuario autenticado %>
+    <label for="userId">Creador</label>
+    <select name="userId" id="userId" required>
+        <% for (const user of users) { %>
+            <option value="<%= user.userId %>" <%= user.userId == hero.userId ? "selected" : "" %>><%= user.username %></option>
+        <% } %>
+    </select>
+
+    <p class="hint">El nivel de utilidad se calcula a partir de sus poderes: podrás asignarlos desde la ficha del héroe.</p>
 
     <button>Crear</button>
 </form>
+
+<a href="/hero">Volver</a>
 <%- include('../layout/footer'); -%>

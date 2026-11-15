@@ -11,7 +11,7 @@ const DB_PASSWORD = process.env.POSTGRES_PASSWORD;
 const DB_HOST = process.env.POSTGRES_HOST;
 const DB_PORT = 5432;
 const DIALECT = "postgres";
-const LOGGING = true;
+const LOGGING = false; // ponlo a console.log para ver las consultas SQL que genera Sequelize
 
 const connection = new Sequelize(
     DB_NAME,

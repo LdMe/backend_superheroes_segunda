@@ -24,7 +24,7 @@ CREATE TABLE users (
     user_id          SERIAL       PRIMARY KEY,
     username    VARCHAR(50)  NOT NULL UNIQUE,
     email       VARCHAR(100) NOT NULL UNIQUE,
-    password    VARCHAR(255) NOT NULL,                -- hash de bcrypt, nunca texto plano
+    password    VARCHAR(255) NOT NULL,                -- de momento en texto plano (ver README)
     role        VARCHAR(10)  NOT NULL DEFAULT 'user'
                 CHECK (role IN ('admin', 'user')),
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
@@ -36,8 +36,10 @@ CREATE TABLE users (
 -- ---------------------------------------------------------------------
 CREATE TABLE powers (
     power_id          SERIAL       PRIMARY KEY,
-    name        VARCHAR(80)  NOT NULL UNIQUE,
-    description TEXT,
+    name          VARCHAR(80)  NOT NULL UNIQUE,
+    description   TEXT,
+    utility_level SMALLINT     NOT NULL DEFAULT 5
+                  CHECK (utility_level BETWEEN 1 AND 10),
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW()
 );
@@ -50,8 +52,8 @@ CREATE TABLE heroes (
     hero_id            SERIAL       PRIMARY KEY,
     name          VARCHAR(80)  NOT NULL UNIQUE,
     description   TEXT,
-    utility_level SMALLINT     NOT NULL DEFAULT 5
-                  CHECK (utility_level BETWEEN 1 AND 10),
+    -- el nivel de utilidad del héroe NO se guarda: se calcula en el modelo
+    -- de Sequelize como la media del utility_level de sus poderes
     user_id       INTEGER      NOT NULL
                   REFERENCES users(user_id) ON DELETE CASCADE,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW(),

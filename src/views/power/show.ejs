@@ -1,0 +1,29 @@
+<%- include('../layout/header', { title: power ? power.name : 'Poder no encontrado' }); -%>
+
+<% if (power) { %>
+    <%- include('powerCard', { power }) -%>
+
+    <div class="actions">
+        <a class="button" href="/power/<%= power.powerId %>/edit">Editar</a>
+        <form method="post" action="/power/<%= power.powerId %>/delete" data-confirm="¿Seguro que quieres eliminar el poder <%= power.name %>? Se quitará a todos los héroes que lo tienen.">
+            <button class="danger">Eliminar</button>
+        </form>
+    </div>
+
+    <section>
+        <h3>Héroes con este poder</h3>
+        <% if (power.heroes.length === 0) { %>
+            <p>Ningún héroe tiene este poder todavía.</p>
+        <% } %>
+        <ul>
+            <% for (const hero of power.heroes) { %>
+                <li><a href="/hero/<%= hero.heroId %>"><%= hero.name %></a></li>
+            <% } %>
+        </ul>
+    </section>
+<% } else { %>
+    <p>No existe el poder</p>
+<% } %>
+
+<a href="/power">Volver</a>
+<%- include('../layout/footer'); -%>

@@ -1,28 +1,43 @@
 
-import { User,Hero } from "../models/index.js";
+import { User, Hero } from "../models/index.js";
+
+// Nunca devolvemos la contraseña al leer usuarios
+const PUBLIC_ATTRIBUTES = { exclude: ["password"] };
+
+// Quita la contraseña de un usuario recién creado o modificado
+// (create y save devuelven el objeto completo, con la contraseña)
+const withoutPassword = (user) => {
+    const { password, ...rest } = user.toJSON();
+    return rest;
+}
 
 
 // ------------------ CRUD de user ----------------------------
 
 // ------------------ C (Create)
-// endpoint para crear dato
-const create = async (data)=>{
-    const user = await User.create(data)
-    return user;
+// crear un usuario
+const create = async (data) => {
+    const { username, email, password, role } = data;
+    const user = await User.create({ username, email, password, role });
+    return withoutPassword(user);
 }
 
 
 // ------------------ R (Read)---------------------------------------------
-// endpoint lista de datos
-const getAll = async() => {
-    const users = await User.findAll();
+// lista de usuarios
+const getAll = async () => {
+    const users = await User.findAll({
+        attributes: PUBLIC_ATTRIBUTES,
+        order: [["userId", "ASC"]]
+    });
     return users;
 };
 
-// endpoint dato individual
+// usuario individual, con sus héroes
 const getById = async (id) => {
-    const user = await User.findByPk(id,{
-        include:{
+    const user = await User.findByPk(id, {
+        attributes: PUBLIC_ATTRIBUTES,
+        include: {
             model: Hero,
             as: "heroes",
         }
@@ -32,47 +47,47 @@ const getById = async (id) => {
 
 
 // ---------------- U (Update) -----------------------------------
-// endpoint para cambiar dato por completo
-const update =async (id, data)=>{
-    const {username,email,password,role} = data;
-    const user  = await User.findByPk(id);
-    if(user){
+// cambiar el usuario por completo
+const update = async (id, data) => {
+    const { username, email, password, role } = data;
+    const user = await User.findByPk(id);
+    if (user) {
         user.username = username;
         user.email = email;
         user.password = password;
         user.role = role;
         await user.save();
-        return user;
-    }else{
+        return withoutPassword(user);
+    } else {
         return null;
     }
 
 }
 
-const modify = async (id,data)=>{
-    const {username,email,password,role} = data;
-    const user  = await User.findByPk(id);
-    if(!user){
+// cambiar solo los campos que nos llegan
+// la contraseña solo se cambia si nos llega una nueva (no vacía)
+const modify = async (id, data) => {
+    const { username, email, password, role } = data;
+    const user = await User.findByPk(id);
+    if (!user) {
         return null;
     }
-    user.username = username || user.username;
-    user.email = email || user.email;
+    user.username = username ?? user.username;
+    user.email = email ?? user.email;
     user.password = password || user.password;
-    user.role = role || user.role;
+    user.role = role ?? user.role;
     await user.save();
-    return user;
+    return withoutPassword(user);
 }
-
-
 
 
 // ------------------------ D (Delete)------------
 
-const remove =async (id)=>{
+const remove = async (id) => {
     const user = await User.findByPk(id);
-    if(user){
+    if (user) {
         await user.destroy();
-        return user;
+        return withoutPassword(user);
     }
     return null;
 }

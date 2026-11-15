@@ -1,51 +1,79 @@
 
 import userRepository from "../../repositories/user.repository.js";
+import { getErrorMessage, getErrorStatus } from "../../utils/errors.js";
 
 
 // ------------------ CRUD de user ----------------------------
 
 // ------------------ C (Create)
-// endpoint para crear dato
-const create = async(req,res)=>{
-    const user = await  userRepository.create(req.body);
-    res.json({data:user})
+// POST /api/user
+const create = async (req, res) => {
+    try {
+        const user = await userRepository.create(req.body);
+        res.status(201).json({ data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(getErrorStatus(error)).json({ error: getErrorMessage(error) });
+    }
 }
 
 // ------------------ R (Read)---------------------------------------------
-// endpoint lista de datos
-const getAll = async(req, res) => {
+// GET /api/user
+const getAll = async (req, res) => {
     const users = await userRepository.getAll();
-    res.json({ data: users })
+    res.json({ data: users });
 };
 
-// endpoint dato individual
-const getById = async(req, res) => {
+// GET /api/user/:id
+const getById = async (req, res) => {
     const id = parseInt(req.params.id);
     const user = await userRepository.getById(id);
-    res.json({ data: user })
+    if (!user) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    res.json({ data: user });
 };
 
 // ---------------- U (Update) -----------------------------------
-// endpoint para cambiar dato por completo
-const update = async(req,res)=>{
+// PUT /api/user/:id  -> cambiar el dato por completo
+const update = async (req, res) => {
     const id = parseInt(req.params.id);
-    const user = await userRepository.update(id,req.body);
-    res.json({data:user});
+    try {
+        const user = await userRepository.update(id, req.body);
+        if (!user) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+        res.json({ data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(getErrorStatus(error)).json({ error: getErrorMessage(error) });
+    }
 }
 
-// endpoint para cambiar parte del dato
-const modify =async (req,res)=>{
+// PATCH /api/user/:id  -> cambiar solo una parte del dato
+const modify = async (req, res) => {
     const id = parseInt(req.params.id);
-    const user  = await userRepository.modify(id,req.body);
-    res.json({data:user});
+    try {
+        const user = await userRepository.modify(id, req.body);
+        if (!user) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+        res.json({ data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(getErrorStatus(error)).json({ error: getErrorMessage(error) });
+    }
 }
 
 // ------------------------ D (Delete)------------
-
-const remove = async(req,res)=>{
-    const id  = parseInt(req.params.id);
+// DELETE /api/user/:id
+const remove = async (req, res) => {
+    const id = parseInt(req.params.id);
     const user = await userRepository.remove(id);
-    res.json({data: user})
+    if (!user) {
+        return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+    res.json({ data: user });
 }
 
 

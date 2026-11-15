@@ -1,10 +1,17 @@
-<article class="hero-card">
+<article class="card hero-card">
     <h3><%= hero.name %></h3>
-    <p>Descripción: <%= hero.description %></p>
-    <p>Nivel de utilidad: <%= hero.utility_level %></p>
-    <a href="/hero/<%=hero.id%>">Visitar</a>
-    <form method="post" action="/hero/<%=hero.id%>/delete">
-        <button>Eliminar</button>
-    </form>
-
+    <p><%= hero.description %></p>
+    <%# utility_level es un campo virtual: solo existe si se han cargado los poderes %>
+    <% if (hero.powers) { %>
+        <% if (hero.powers.length > 0) { %>
+            <p>Nivel de utilidad: <strong><%= hero.utility_level %></strong> / 10
+               (<%= hero.powers.length %> <%= hero.powers.length === 1 ? "poder" : "poderes" %>)</p>
+        <% } else { %>
+            <p>Todavía no tiene poderes</p>
+        <% } %>
+    <% } %>
+    <% if (hero.owner) { %>
+        <p>Creado por: <a href="/user/<%= hero.owner.userId %>"><%= hero.owner.username %></a></p>
+    <% } %>
+    <a href="/hero/<%= hero.heroId %>">Ver ficha</a>
 </article>

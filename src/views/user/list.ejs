@@ -1,7 +1,12 @@
-<%- include('../layout/header'); -%>
+<%- include('../layout/header', { title: 'Usuarios' }); -%>
 
-<h2> Usuarios:</h2>
-<% for (user of users) {%>
-    <%- include('userCard',{user}) -%>
-<% } %>
+<h2>Usuarios</h2>
+<a class="button" href="/user/new">Nuevo usuario</a>
+
+<section class="cards">
+    <% for (const user of users) { %>
+        <%- include('userCard', { user }) -%>
+    <% } %>
+</section>
+
 <%- include('../layout/footer'); -%>

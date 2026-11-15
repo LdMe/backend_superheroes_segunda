@@ -1,11 +1,67 @@
-<%- include('../layout/header'); -%>
+<%- include('../layout/header', { title: hero ? hero.name : 'Héroe no encontrado' }); -%>
 
-<% if(hero){%>
-    <%- include('heroCard',{hero}) -%>
+<% if (hero) { %>
+    <%- include('heroCard', { hero }) -%>
 
-<%}else{ %>
+    <div class="actions">
+        <a class="button" href="/hero/<%= hero.heroId %>/edit">Editar</a>
+        <form method="post" action="/hero/<%= hero.heroId %>/delete" data-confirm="¿Seguro que quieres eliminar a <%= hero.name %>?">
+            <button class="danger">Eliminar</button>
+        </form>
+    </div>
+
+    <section>
+        <h3>Poderes</h3>
+        <% if (hero.powers.length === 0) { %>
+            <p>Este héroe todavía no tiene poderes.</p>
+        <% } %>
+        <ul class="power-list">
+            <% for (const power of hero.powers) { %>
+                <li>
+                    <a href="/power/<%= power.powerId %>"><%= power.name %></a>
+                    (utilidad <%= power.utility_level %>)
+                    <form method="post" action="/hero/<%= hero.heroId %>/powers/<%= power.powerId %>/delete" data-confirm="¿Quitar el poder <%= power.name %>?">
+                        <button class="danger small">Quitar</button>
+                    </form>
+                </li>
+            <% } %>
+        </ul>
+    </section>
+
+    <section class="forms">
+        <%# Asignar un poder que ya existe en el catálogo %>
+        <% if (availablePowers.length > 0) { %>
+            <form method="post" action="/hero/<%= hero.heroId %>/powers">
+                <h4>Asignar un poder</h4>
+                <label for="powerId">Poder</label>
+                <select name="powerId" id="powerId" required>
+                    <% for (const power of availablePowers) { %>
+                        <option value="<%= power.powerId %>"><%= power.name %> (<%= power.utility_level %>)</option>
+                    <% } %>
+                </select>
+                <button>Asignar</button>
+            </form>
+        <% } %>
+
+        <%# Crear un poder nuevo: se guarda en el catálogo y se asigna a este héroe %>
+        <form method="post" action="/hero/<%= hero.heroId %>/powers/new">
+            <h4>Crear un poder nuevo</h4>
+            <%- include('../layout/error') -%>
+            <label for="power-name">Nombre</label>
+            <input type="text" name="name" id="power-name" value="<%= newPower.name %>" required>
+
+            <label for="power-description">Descripción</label>
+            <textarea name="description" id="power-description"><%= newPower.description %></textarea>
+
+            <label for="power-utility">Nivel de utilidad (1-10)</label>
+            <input type="number" name="utility_level" id="power-utility" min="1" max="10" value="<%= newPower.utility_level ?? 5 %>" required>
+
+            <button>Crear y asignar</button>
+        </form>
+    </section>
+<% } else { %>
     <p>No existe el héroe</p>
-<%}%>
+<% } %>
 
-    <a href="/hero">Volver</a>
+<a href="/hero">Volver</a>
 <%- include('../layout/footer'); -%>

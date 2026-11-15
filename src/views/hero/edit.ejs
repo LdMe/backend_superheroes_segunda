@@ -1,0 +1,24 @@
+<%- include('../layout/header', { title: 'Editar héroe' }); -%>
+
+<h2>Editar héroe</h2>
+<%- include('../layout/error') -%>
+
+<form action="/hero/<%= hero.heroId %>/edit" method="post">
+    <label for="name">Nombre de héroe</label>
+    <input type="text" name="name" id="name" value="<%= hero.name %>" required>
+
+    <label for="description">Descripción</label>
+    <textarea id="description" name="description"><%= hero.description %></textarea>
+
+    <label for="userId">Creador</label>
+    <select name="userId" id="userId" required>
+        <% for (const user of users) { %>
+            <option value="<%= user.userId %>" <%= user.userId == hero.userId ? "selected" : "" %>><%= user.username %></option>
+        <% } %>
+    </select>
+
+    <button>Guardar</button>
+</form>
+
+<a href="/hero/<%= hero.heroId %>">Volver</a>
+<%- include('../layout/footer'); -%>
