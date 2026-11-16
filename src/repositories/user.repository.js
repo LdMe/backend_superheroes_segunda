@@ -18,6 +18,8 @@ const withoutPassword = (user) => {
 // crear un usuario
 const create = async (data) => {
     const { username, email, password, role } = data;
+    // const password_hash = await bcrypt.hash(password,10);
+    // const user = await User.create({ username, email, password:password_hash, role });
     const user = await User.create({ username, email, password, role });
     return withoutPassword(user);
 }
@@ -36,6 +38,27 @@ const getAll = async () => {
 // usuario individual, con sus héroes
 const getById = async (id) => {
     const user = await User.findByPk(id, {
+        attributes: PUBLIC_ATTRIBUTES,
+        include: {
+            model: Hero,
+            as: "heroes",
+        }
+    });
+    return user;
+};
+
+const getByEmail = async (email) => {
+    const user = await User.findOne({where: {email}}, {
+        include: {
+            model: Hero,
+            as: "heroes",
+        }
+    });
+    return user;
+};
+
+const getByUsername = async (username) => {
+    const user = await User.findOne({where: {username}}, {
         attributes: PUBLIC_ATTRIBUTES,
         include: {
             model: Hero,
@@ -97,6 +120,8 @@ export default {
     create,
     getAll,
     getById,
+    getByEmail,
+    getByUsername,
     update,
     modify,
     remove

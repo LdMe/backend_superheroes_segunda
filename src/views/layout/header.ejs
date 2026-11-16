@@ -15,7 +15,15 @@
             <li><a href="/">Inicio</a></li>
             <li><a href="/hero">Héroes</a></li>
             <li><a href="/power">Poderes</a></li>
+            <% if(!user){
+                %>
+            <li><a href="/auth/login">Login</a></li>
+            <%
+            }else{
+                %>
+            <li><a href="/auth/logout">Logout</a></li>
             <li><a href="/user">Usuarios</a></li>
+            <%}%>
         </ul>
     </nav>
 </header>

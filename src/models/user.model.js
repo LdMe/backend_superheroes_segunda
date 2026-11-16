@@ -1,5 +1,6 @@
 import { DataTypes } from "sequelize";
 import connection from "../config/db.js";
+import bcrypt from "bcrypt";
 
 const User = connection.define("User",{
     userId: {
@@ -30,6 +31,20 @@ const User = connection.define("User",{
     tableName: "users",
     timestamps:true, // asegurarse de que tiene created_at, updated_at
     underscored: true,
+});
+
+
+User.beforeCreate(async (user) => {
+  const hashedPassword = await bcrypt.hash(user.password,10);
+  console.log("hash",hashedPassword,user.password);
+  user.password = hashedPassword;
+});
+
+User.beforeUpdate(async (user) => {
+    if(user.changed("password")){
+        const hashedPassword = await bcrypt.hash(user.password,10);
+        user.password = hashedPassword;
+    }
 });
 
 export default User;

@@ -3,6 +3,8 @@ import dotenv from "dotenv";
 import cors from "cors";
 import router from "./routes/router.js";
 import connection from "./config/db.js";
+import session from "express-session";
+
 
 dotenv.config();
 
@@ -11,10 +13,23 @@ const PORT = process.env.PORT || 3000;
 
 const app = express();
 
+
 // Middlewares 
 app.use(cors())
 app.use(express.json()) // permite leer el body de los POST en json
 app.use(express.urlencoded({ extended: true })) // permite leer el body de los POST en formularios
+
+app.use(session({ // solo para cuando tenemos vistas
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: false
+}))
+
+app.use((req,res,next)=>{
+    res.locals.query = req.query;
+    res.locals.user = req.session?.user;
+    next();
+})
 
 app.use(express.static("public"));
 

@@ -1,0 +1,33 @@
+<%- include('../layout/header', { title: 'Nuevo usuario' }); -%>
+
+<h2>Iniciar sesión</h2>
+<%- include('../layout/error') -%>
+
+<% if(query ){
+    if(query.error){
+        %>
+        <p class="error"><%= query.error %></p>
+        <%
+    }
+    if(query.message){
+        %>
+        <p class="message"><%= query.message %></p>
+        <%
+    }
+}
+%>
+<form action="/auth/login" method="post">
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email"  required>
+
+
+    <label for="password">Contraseña</label>
+    <input type="password" name="password" id="password" required>
+
+    <button>Iniciar sesión</button>
+</form>
+
+<a href="/auth/register">Registro</a>
+<a href="/user">Volver</a>
+
+<%- include('../layout/footer'); -%>

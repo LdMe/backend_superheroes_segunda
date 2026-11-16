@@ -24,11 +24,11 @@ TRUNCATE hero_powers, heroes, powers, users RESTART IDENTITY CASCADE;
 --  - pepe no tiene ningún héroe (útil para probar listas vacías)
 -- ---------------------------------------------------------------------
 INSERT INTO users (username, email, password, role) VALUES
-  ('admin', 'admin@agencia.test', '$2b$10$Q0tpp8.5ahRcn9dT6JmEje7F85fk0AdkaRQRF2wj4KmMoeI5M73Za', 'admin'), -- id 1
-  ('paco',  'paco@agencia.test',  '$2b$10$AVSXrv7/YhFi8sVBuhUWOeB7Bl.ZxnX2/1UqWKnzwthzNmgZsqcNO', 'user'),  -- id 2
-  ('marta', 'marta@agencia.test', '$2b$10$AVSXrv7/YhFi8sVBuhUWOeB7Bl.ZxnX2/1UqWKnzwthzNmgZsqcNO', 'user'),  -- id 3
-  ('lucia', 'lucia@agencia.test', '$2b$10$AVSXrv7/YhFi8sVBuhUWOeB7Bl.ZxnX2/1UqWKnzwthzNmgZsqcNO', 'user'),  -- id 4
-  ('pepe',  'pepe@agencia.test',  '$2b$10$AVSXrv7/YhFi8sVBuhUWOeB7Bl.ZxnX2/1UqWKnzwthzNmgZsqcNO', 'user');  -- id 5
+  ('admin', 'admin@agencia.test', '$2b$10$jD5NJPoiA7vhj/Iig2QkEOcpvpYUcrD1uRHySY/7nwfY5tQaT76Va', 'admin'), -- id 1
+  ('paco',  'paco@agencia.test',  '$2b$10$jD5NJPoiA7vhj/Iig2QkEOcpvpYUcrD1uRHySY/7nwfY5tQaT76Va', 'user'),  -- id 2
+  ('marta', 'marta@agencia.test', '$2b$10$jD5NJPoiA7vhj/Iig2QkEOcpvpYUcrD1uRHySY/7nwfY5tQaT76Va', 'user'),  -- id 3
+  ('lucia', 'lucia@agencia.test', '$2b$10$jD5NJPoiA7vhj/Iig2QkEOcpvpYUcrD1uRHySY/7nwfY5tQaT76Va', 'user'),  -- id 4
+  ('pepe',  'pepe@agencia.test',  '$2b$10$jD5NJPoiA7vhj/Iig2QkEOcpvpYUcrD1uRHySY/7nwfY5tQaT76Va', 'user');  -- id 5
 
 -- ---------------------------------------------------------------------
 --  Poderes
