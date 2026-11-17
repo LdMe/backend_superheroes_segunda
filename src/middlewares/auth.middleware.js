@@ -1,11 +1,13 @@
 
 
-const isAuthenticated = async(req,res,next) =>{
-    if(req.session.user){
-        next();
-    }else{
-        res.redirect("/auth/login");
+const isAuthenticated = (req, res, next) => {
+    
+    if (req.session.user) {
+        return next();
     }
+
+    res.redirect("/auth/login");
+
 }
 
 

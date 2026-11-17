@@ -1,0 +1,12 @@
+{
+    "source": {
+        "include": [
+            "./src"
+        ],
+        "includePattern": ".+\\.js$"
+    },
+    "opts": {
+        "destination": "./jsdocs",
+        "recurse": true
+    }
+}

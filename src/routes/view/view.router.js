@@ -11,7 +11,7 @@ router.get("/", (req, res) => {
     res.render("index");
 })
 
-router.use("/user",isAuthenticated,userRouter);
+router.use("/user",userRouter);
 router.use("/hero",heroRouter);
 router.use("/power",powerRouter);
 router.use("/auth",authRouter);
