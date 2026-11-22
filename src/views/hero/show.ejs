@@ -3,12 +3,18 @@
 <% if (hero) { %>
     <%- include('heroCard', { hero }) -%>
 
+    <%# Solo enseñamos los botones a quien puede usarlos. Ojo: esto es solo estética,
+        la comprobación de verdad la hace el middleware isHeroOwner en las rutas %>
+    <% const canEdit = currentUser && (currentUser.userId === hero.userId || currentUser.role === "admin"); %>
+
+    <% if (canEdit) { %>
     <div class="actions">
         <a class="button" href="/hero/<%= hero.heroId %>/edit">Editar</a>
         <form method="post" action="/hero/<%= hero.heroId %>/delete" data-confirm="¿Seguro que quieres eliminar a <%= hero.name %>?">
             <button class="danger">Eliminar</button>
         </form>
     </div>
+    <% } %>
 
     <section>
         <h3>Poderes</h3>
@@ -20,14 +26,17 @@
                 <li>
                     <a href="/power/<%= power.powerId %>"><%= power.name %></a>
                     (utilidad <%= power.utility_level %>)
+                    <% if (canEdit) { %>
                     <form method="post" action="/hero/<%= hero.heroId %>/powers/<%= power.powerId %>/delete" data-confirm="¿Quitar el poder <%= power.name %>?">
                         <button class="danger small">Quitar</button>
                     </form>
+                    <% } %>
                 </li>
             <% } %>
         </ul>
     </section>
 
+    <% if (canEdit) { %>
     <section class="forms">
         <%# Asignar un poder que ya existe en el catálogo %>
         <% if (availablePowers.length > 0) { %>
@@ -59,6 +68,7 @@
             <button>Crear y asignar</button>
         </form>
     </section>
+    <% } %>
 <% } else { %>
     <p>No existe el héroe</p>
 <% } %>

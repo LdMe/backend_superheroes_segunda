@@ -48,8 +48,7 @@ const withoutPassword = (user) => {
 const create = async (data) => {
     const { username, email, password, role } = data;
     try {
-        // const password_hash = await bcrypt.hash(password,10);
-        // const user = await User.create({ username, email, password:password_hash, role });
+        // la contraseña se hashea en el hook beforeCreate del modelo (user.model.js)
         const user = await User.create({ username, email, password, role });
         return withoutPassword(user);
     } catch (error) {
@@ -105,15 +104,19 @@ const getById = async (id) => {
 
 /**
  * Obtener un usuario individual por su email, junto con sus héroes.
- * Nota: Este método actualmente devuelve la contraseña, ya que no usa PUBLIC_ATTRIBUTES.
+ * Nota: este método SÍ devuelve la contraseña (hasheada), porque el login la
+ * necesita para compararla con bcrypt. No lo uses para responder al cliente.
  * 
  * @async
  * @param {string} email - Email del usuario a buscar.
- * @returns {Promise<Object|null>} Promesa que resuelve con el usuario encontrado o null si no existe.
+ * @returns {Promise<Object>} Promesa que resuelve con el usuario encontrado.
+ * @throws {NotFoundError} Si no existe ningún usuario con ese email.
  */
 const getByEmail = async (email) => {
     try {
-        const user = await User.findOne({where: {email}}, {
+        // findOne recibe UN objeto de opciones: where, include, attributes...
+        const user = await User.findOne({
+            where: { email },
             include: {
                 model: Hero,
                 as: "heroes",
@@ -137,7 +140,8 @@ const getByEmail = async (email) => {
  */
 const getByUsername = async (username) => {
     try {
-        const user = await User.findOne({where: {username}}, {
+        const user = await User.findOne({
+            where: { username },
             attributes: PUBLIC_ATTRIBUTES,
             include: {
                 model: Hero,

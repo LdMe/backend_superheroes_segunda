@@ -15,28 +15,22 @@ const registerForm = async (req, res) => {
 }
 const register = async (req, res) => {
     const { username, email, password, passwordRepeat } = req.body;
-    const role = "user";
+    const role = "user"; // el registro público siempre crea usuarios normales
+    if (!password) {
+        return redirect(res,"/auth/register",{error:"La contraseña es obligatoria"});
+    }
     if (password !== passwordRepeat) {
-        redirect(res,"/auth/register",{error:"Las contraseñas no coinciden"})
-        return;
+        return redirect(res,"/auth/register",{error:"Las contraseñas no coinciden"});
     }
     try {
-        let oldUser = await userRepository.getByEmail(email);
-        if (oldUser) {
-            redirect(res,"/auth/register",{error:"Ya existe un usuario con este email"})
-            return;
-        }
-        oldUser = await userRepository.getByUsername(username);
-        if (oldUser) {
-            redirect(res,"/auth/register",{error:"Ya existe un usuario con este nombre"})
-            return;
-        }
-        const user = await userRepository.create({username,email,password,role})
+        // si el email o el username ya existen, el repositorio lanza
+        // UniqueEmailError o UniqueUsernameError con un mensaje claro
+        await userRepository.create({username,email,password,role})
         redirect(res,"/auth/login",{message:"Registro exitoso"})
-        
+
     } catch (error) {
         console.error(error);
-        redirect(res,"/auth/register",{error:"Error al registrarse"})
+        redirect(res,"/auth/register",{error: error.message})
     }
 }
 
@@ -49,21 +43,21 @@ const loginForm = async (req, res) => {
 const login = async (req, res) => {
     const {email,password} = req.body;
     try {
+        // si no existe, getByEmail lanza NotFoundError (lo tratamos en el catch)
         const user = await userRepository.getByEmail(email);
-        if(!user){
-            return redirect(res,"/auth/login",{error:"Credenciales incorrectas"});
-        } 
-        console.log(user, password)
         const compare = await bcrypt.compare(password,user.password);
-        console.log(compare);
         if(!compare){
             return redirect(res,"/auth/login",{error:"Credenciales incorrectas"});
         }
-        req.session.user = {userId:user.userId, role:user.role};
+        req.session.user = {userId:user.userId, username:user.username, role:user.role};
         redirect(res,"/",{message:"Login exitoso"});
 
     } catch (error) {
         console.error(error);
+        // no decimos si lo que falla es el email o la contraseña
+        if (error.status === 404) {
+            return redirect(res,"/auth/login",{error:"Credenciales incorrectas"});
+        }
         redirect(res,"/auth/login",{error:"Ha habido un error en el Login"});
     }
 }

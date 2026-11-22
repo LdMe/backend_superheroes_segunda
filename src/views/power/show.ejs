@@ -3,12 +3,14 @@
 <% if (power) { %>
     <%- include('powerCard', { power }) -%>
 
+    <% if (currentUser && currentUser.role === "admin") { %>
     <div class="actions">
         <a class="button" href="/power/<%= power.powerId %>/edit">Editar</a>
         <form method="post" action="/power/<%= power.powerId %>/delete" data-confirm="¿Seguro que quieres eliminar el poder <%= power.name %>? Se quitará a todos los héroes que lo tienen.">
             <button class="danger">Eliminar</button>
         </form>
     </div>
+    <% } %>
 
     <section>
         <h3>Héroes con este poder</h3>

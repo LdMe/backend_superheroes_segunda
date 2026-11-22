@@ -15,15 +15,17 @@
             <li><a href="/">Inicio</a></li>
             <li><a href="/hero">Héroes</a></li>
             <li><a href="/power">Poderes</a></li>
-            <% if(!user){
-                %>
-            <li><a href="/auth/login">Login</a></li>
-            <%
-            }else{
-                %>
-            <li><a href="/auth/logout">Logout</a></li>
-            <li><a href="/user">Usuarios</a></li>
-            <%}%>
+            <%# currentUser es el usuario logueado (lo pone un middleware en index.js) %>
+            <% if (!currentUser) { %>
+                <li><a href="/auth/login">Login</a></li>
+                <li><a href="/auth/register">Registro</a></li>
+            <% } else { %>
+                <li><a href="/user/me">Mis héroes</a></li>
+                <% if (currentUser.role === "admin") { %>
+                    <li><a href="/user">Usuarios</a></li>
+                <% } %>
+                <li><a href="/auth/logout">Salir (<%= currentUser.username %>)</a></li>
+            <% } %>
         </ul>
     </nav>
 </header>

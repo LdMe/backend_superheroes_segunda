@@ -10,13 +10,6 @@
     <label for="description">Descripción</label>
     <textarea id="description" name="description"><%= hero.description %></textarea>
 
-    <label for="userId">Creador</label>
-    <select name="userId" id="userId" required>
-        <% for (const user of users) { %>
-            <option value="<%= user.userId %>" <%= user.userId == hero.userId ? "selected" : "" %>><%= user.username %></option>
-        <% } %>
-    </select>
-
     <button>Guardar</button>
 </form>
 

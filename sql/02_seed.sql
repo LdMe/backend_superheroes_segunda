@@ -7,11 +7,9 @@
 --  Para restaurar los datos sin borrar el volumen:
 --    docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"' < sql/02_seed.sql
 --
---  Contraseñas: el seed ya trae hashes de bcrypt (10 rondas) pensando en
---  la fase de autenticación. Mientras no haya login, los usuarios nuevos
---  se guardan en texto plano, así que conviven los dos formatos.
---    admin           -> admin1234
---    resto usuarios  -> heroe1234
+--  Contraseñas: hash de bcrypt (10 rondas), igual que las que guarda la app
+--  (el modelo User las hashea en los hooks beforeCreate / beforeUpdate).
+--    todos los usuarios -> 1234
 -- =====================================================================
 
 BEGIN;

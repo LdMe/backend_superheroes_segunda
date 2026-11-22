@@ -6,6 +6,11 @@
     Capitán Wifi, Doctor Cargador, Señora Táper…
 </p>
 
+<%# mensaje que llega por la query después del login (?message=Login+exitoso) %>
+<% if (query.message) { %>
+    <p class="message"><%= query.message %></p>
+<% } %>
+
 <section class="cards">
     <article class="card">
         <h3>Héroes</h3>
@@ -17,13 +22,27 @@
         <p>Catálogo de poderes, cada uno con su nivel de utilidad del 1 al 10.</p>
         <a href="/power">Ver poderes</a>
     </article>
-    <article class="card">
-        <h3>Usuarios</h3>
-        <p>Personas registradas que crean héroes.</p>
-        <a href="/user">Ver usuarios</a>
-    </article>
+    <% if (!currentUser) { %>
+        <article class="card">
+            <h3>Únete a la agencia</h3>
+            <p>Regístrate para crear tus propios héroes y asignarles poderes.</p>
+            <a href="/auth/register">Registrarme</a> · <a href="/auth/login">Iniciar sesión</a>
+        </article>
+    <% } else if (currentUser.role === "admin") { %>
+        <article class="card">
+            <h3>Usuarios</h3>
+            <p>Gestión de las personas registradas (solo admin).</p>
+            <a href="/user">Ver usuarios</a>
+        </article>
+    <% } else { %>
+        <article class="card">
+            <h3>Mis héroes</h3>
+            <p>Los héroes que has creado tú.</p>
+            <a href="/user/me">Ver mis héroes</a>
+        </article>
+    <% } %>
 </section>
 
-<p>También hay una API REST en <a href="/api">/api</a> (<code>/api/hero</code>, <code>/api/power</code>, <code>/api/user</code>).</p>
+<p>También hay una API REST en <a href="/api">/api</a> (<code>/api/auth</code>, <code>/api/hero</code>, <code>/api/power</code>, <code>/api/user</code>).</p>
 
 <%- include('layout/footer'); -%>

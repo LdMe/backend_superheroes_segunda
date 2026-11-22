@@ -1,7 +1,9 @@
 <%- include('../layout/header', { title: 'Héroes' }); -%>
 
 <h2>Héroes</h2>
-<a class="button" href="/hero/new">Nuevo héroe</a>
+<% if (currentUser) { %>
+    <a class="button" href="/hero/new">Nuevo héroe</a>
+<% } %>
 
 <section class="cards">
     <% for (const hero of heroes) { %>

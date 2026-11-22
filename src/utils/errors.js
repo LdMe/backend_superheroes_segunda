@@ -33,6 +33,13 @@ class UniqueUsernameError extends UniqueConstraintError {
         this.name = "UniqueUsernameError";
     }
 }
+// héroes y poderes tienen el nombre único
+class UniqueNameError extends UniqueConstraintError {
+    constructor(name) {
+        super(`Ya existe un registro con el nombre ${name}`);
+        this.name = "UniqueNameError";
+    }
+}
 
 // --------------- errores de validación
 class ValidationError extends ErrorWithStatus {
@@ -50,11 +57,31 @@ class NotFoundError extends ErrorWithStatus {
         this.name="NotFoundError";
     }
 }
+
+// ---------------- errores de autenticación y autorización
+
+// 401: no sabemos quién eres (no hay sesión/token, o es inválido)
+class UnauthorizedError extends ErrorWithStatus {
+    constructor(message="Tienes que iniciar sesión"){
+        super(message,401);
+        this.name="UnauthorizedError";
+    }
+}
+
+// 403: sabemos quién eres, pero no tienes permiso para hacer esto
+class ForbiddenError extends ErrorWithStatus {
+    constructor(message="No tienes permiso para hacer esto"){
+        super(message,403);
+        this.name="ForbiddenError";
+    }
+}
+
 const errorFamilies = {
     SequelizeUniqueConstraintError: { // valores que no se pueden repetir
         default: UniqueConstraintError,
         username: UniqueUsernameError,
-        email: UniqueEmailError
+        email: UniqueEmailError,
+        name: UniqueNameError
     },
     SequelizeValidationError:{ // validación incorrecta
         default: ValidationError
@@ -68,6 +95,15 @@ const errorFamilies = {
 
 
 }
+/**
+ * Convierte cualquier error en uno de nuestros errores con status y lo lanza.
+ * - Si ya es uno de los nuestros (NotFoundError, ForbiddenError...), lo relanza tal cual.
+ * - Si es un error de Sequelize, busca la clase adecuada en errorFamilies.
+ * - Si no sabemos qué es, lanza un GenericError (500).
+ *
+ * @param {Error} error - Error capturado en el repositorio.
+ * @throws {ErrorWithStatus}
+ */
 const throwError = (error) =>{
     if(error instanceof ErrorWithStatus){
         throw error;
@@ -77,56 +113,30 @@ const throwError = (error) =>{
         const path = error.errors && error.errors[0].path;
         const value = error.errors && error.errors[0].value;
         if(path in family){
+            // error específico de un campo: el constructor recibe el valor repetido
             const ErrorType = family[path];
             throw new ErrorType(value);
         }else{
+            // error genérico de la familia: usamos el mensaje de la validación (si lo hay)
             const ErrorType = family["default"];
-            throw new ErrorType(value)
+            const message = error.errors && error.errors[0].message;
+            throw new ErrorType(message || undefined);
         }
     }else{
         throw new GenericError();
     }
 }
-// Mensaje legible para mostrar en un formulario o devolver en la API
-const getErrorMessage = (error) => {
-    switch (error.name) {
-        // un campo "unique" repetido (nombre de héroe, email...)
-        case "SequelizeUniqueConstraintError":
-            return "Ya existe un registro con ese valor de " + Object.keys(error.fields).join(", ");
-        // falla alguna validación del modelo (allowNull, min, max...)
-        case "SequelizeValidationError":
-            return error.errors.map(e => e.message).join(". ");
-        // la clave ajena apunta a algo que no existe (userId inexistente...)
-        case "SequelizeForeignKeyConstraintError":
-            return "El registro relacionado no existe";
-        // PostgreSQL rechaza el dato (por ejemplo un texto donde va un número)
-        case "SequelizeDatabaseError":
-            return "Datos no válidos";
-        default:
-            return "Ha ocurrido un error inesperado";
-    }
-}
-
-// Código de estado HTTP para la API
-const getErrorStatus = (error) => {
-    switch (error.name) {
-        case "SequelizeUniqueConstraintError":
-            return 409; // conflicto: ya existe
-        case "SequelizeValidationError":
-        case "SequelizeForeignKeyConstraintError":
-        case "SequelizeDatabaseError":
-            return 400; // datos inválidos
-        default:
-            return 500; // error nuestro
-    }
-}
 
 export {
-    getErrorMessage,
-    getErrorStatus,
+    ErrorWithStatus,
+    GenericError,
     UniqueConstraintError,
     UniqueEmailError,
     UniqueUsernameError,
-    throwError,
-    NotFoundError
+    UniqueNameError,
+    ValidationError,
+    NotFoundError,
+    UnauthorizedError,
+    ForbiddenError,
+    throwError
 }

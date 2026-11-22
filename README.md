@@ -2,11 +2,9 @@
 
 Aplicación web para registrar héroes con poderes poco espectaculares pero muy útiles: **Capitán Wifi**, **Doctor Cargador**, **Señora Táper**…
 
-Los usuarios crean sus héroes (¡pueden tener varios!) y les asignan poderes de un catálogo. Cada poder tiene un nivel de utilidad del 1 al 10, y el nivel de utilidad del héroe se calcula como **la media de sus poderes**.
+Cualquiera puede consultar héroes y poderes. Los usuarios registrados crean sus héroes (¡pueden tener varios!) y les asignan poderes de un catálogo; el administrador gestiona el catálogo de poderes y los usuarios. Cada poder tiene un nivel de utilidad del 1 al 10, y el nivel de utilidad del héroe se calcula como **la media de sus poderes**.
 
-Proyecto didáctico del módulo de Backend: **Node.js + Express + Sequelize + PostgreSQL + EJS**, todo levantado con **Docker Compose**.
-
-> ℹ️ **Estado actual:** todavía no hay autenticación. Todas las rutas son públicas y las contraseñas se guardan **en texto plano**. Login con bcrypt + JWT y permisos por rol llegarán en la siguiente fase (ver [Hoja de ruta](#hoja-de-ruta)).
+Proyecto didáctico del módulo de Backend: **Node.js + Express + Sequelize + PostgreSQL + EJS + bcrypt + sesiones + JWT**, todo levantado con **Docker Compose**.
 
 ---
 
@@ -20,7 +18,12 @@ Proyecto didáctico del módulo de Backend: **Node.js + Express + Sequelize + Po
 | Relación N:M | `Hero` ↔ `Power` a través de `hero_powers` (`addPower`, `removePower`) |
 | Campo calculado | `Hero.utility_level` es un campo `VIRTUAL`: la media de sus poderes |
 | Controlador que coordina repositorios | Crear un poder nuevo desde la ficha del héroe y asignárselo |
-| Errores y códigos HTTP | `try/catch` en los controladores + `src/utils/errors.js` |
+| Errores y códigos HTTP | Clases de error con `status` en `src/utils/errors.js`; los repositorios las lanzan y los controladores responden con `error.status` |
+| Contraseñas con bcrypt | Hooks `beforeCreate` / `beforeUpdate` del modelo `User` |
+| Autenticación en vistas | Sesión con `express-session` (`req.session.user`) |
+| Autenticación en la API | Token JWT en la cabecera `Authorization: Bearer <token>` |
+| Autorización por rol | Middleware `hasRole("admin")`: solo el admin gestiona poderes y usuarios |
+| Autorización por propiedad | Middleware `isHeroOwner`: solo el creador (o el admin) edita o borra un héroe |
 
 ---
 
@@ -64,6 +67,11 @@ PGADMIN_HOST=pgadmin_superheroes
 PGADMIN_PORT=8082
 PGADMIN_EMAIL=admin@mail.com
 PGADMIN_PASSWORD=otra-contraseña
+
+# secretos para firmar los tokens JWT y las cookies de sesión
+# (cualquier texto largo y aleatorio, por ejemplo: openssl rand -hex 32)
+JWT_SECRET=un-texto-largo-y-aleatorio
+SESSION_SECRET=otro-texto-largo-y-aleatorio
 ```
 
 El `.env` no se sube a Git. Docker Compose lo usa para nombrar los contenedores y crear la base de datos, y la app lo lee con `dotenv`. `POSTGRES_HOST` es también el nombre del contenedor de PostgreSQL, que es como lo encuentra la app dentro de la red de Docker.
@@ -91,6 +99,7 @@ Abre `http://localhost:<APP_PORT>`.
 | `docker compose down` | Parar. **Los datos se conservan** |
 | `docker compose down -v` | Parar y **borrar la base de datos**. Al volver a arrancar se recarga desde `sql/` |
 | `docker compose exec postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'` | Abrir una consola SQL |
+| `docker compose exec app npm install` | Instalar en el contenedor las dependencias nuevas del `package.json` |
 | `docker compose exec app npm install <paquete>` | Instalar un paquete dentro del contenedor |
 
 > ⚠️ Los scripts de `sql/` **solo se ejecutan si el volumen de datos está vacío**. Si cambias el esquema o los datos, necesitas `docker compose down -v` para que se vuelvan a aplicar.
@@ -109,6 +118,8 @@ docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB
 
 ## Datos de ejemplo
 
+Todos los usuarios del seed tienen la contraseña **`1234`** (guardada como hash de bcrypt).
+
 | Usuario | Email | Rol | Héroes |
 | --- | --- | --- | --- |
 | admin | admin@agencia.test | admin | Capitán Obvio |
@@ -118,7 +129,7 @@ docker compose exec -T postgres sh -c 'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB
 | pepe | pepe@agencia.test | user | *(ninguno)* |
 
 - El poder **Abrir botes imposibles** no lo tiene ningún héroe: sirve para comprobar que tus consultas no pierden registros sin relaciones.
-- Las contraseñas del seed ya están guardadas como hash de bcrypt (`admin1234` y `heroe1234`), pensando en la fase de login. Los usuarios que crees ahora desde la app se guardan en texto plano, así que de momento conviven los dos formatos.
+- Con `paco` y `marta` puedes comprobar la autorización por propiedad: Marta no puede editar los héroes de Paco (403), el admin sí.
 
 ---
 
@@ -131,7 +142,7 @@ users 1 ────< heroes >────< hero_powers >────< powers
 
 | Tabla | Campos |
 | --- | --- |
-| `users` | user_id, username, email, password, role (`admin` \| `user`) |
+| `users` | user_id, username, email, password (hash bcrypt), role (`admin` \| `user`) |
 | `heroes` | hero_id, name, description, user_id → users |
 | `powers` | power_id, name, description, utility_level (1–10) |
 | `hero_powers` | hero_id → heroes, power_id → powers (PK compuesta) |
@@ -185,6 +196,58 @@ Con `as: "powers"`, Sequelize añade a cada héroe los métodos `addPower`, `rem
 
 ---
 
+## Autenticación y autorización
+
+La web y la API comparten repositorios, pero cada una recuerda al usuario de una forma distinta:
+
+| | Vistas (EJS) | API (JSON) |
+| --- | --- | --- |
+| Login | `POST /auth/login` guarda `{ userId, username, role }` en `req.session.user` | `POST /api/auth/login` devuelve un token JWT con `{ userId, role }` (caduca en 1 h) |
+| Cómo se envía | Cookie de sesión (la gestiona el navegador) | Cabecera `Authorization: Bearer <token>` |
+| Logout | `GET /auth/logout` destruye la sesión | No hay: el cliente olvida el token |
+| Sin permiso | Redirección al login o página de error | JSON `{ error }` con 401 / 403 |
+
+Las contraseñas nunca se guardan en claro: el modelo `User` las hashea con bcrypt en los hooks `beforeCreate` y `beforeUpdate`, y el login las compara con `bcrypt.compare`. Si falla el email o la contraseña, la respuesta es la misma ("Credenciales incorrectas"), para no revelar qué emails existen.
+
+### Middlewares (`src/middlewares/auth.middleware.js`)
+
+Hay una versión para vistas y otra para la API, igual que con los controladores. Las dos dejan el usuario en `req.user = { userId, role }`, así que los controladores no saben de dónde viene.
+
+| Vistas | API | Qué comprueba | Si falla |
+| --- | --- | --- | --- |
+| `isAuthenticated` | `isAuthenticatedApi` | Hay sesión / el token es válido y no ha caducado | Login / 401 |
+| `hasRole("admin")` | `hasRoleApi("admin")` | El usuario tiene ese rol | 403 |
+| `isHeroOwner` | `isHeroOwnerApi` | El héroe `:id` es suyo, o es admin | 404 si no existe, 403 si no es suyo |
+
+Se encadenan en la ruta, en orden. Los de rol y propiedad necesitan `req.user`, así que van siempre después del de autenticación:
+
+```javascript
+// src/routes/view/hero.router.js
+router.post("/:id/delete", isAuthenticated, isHeroOwner, heroViewController.remove);
+
+// src/routes/api/power.router.js
+router.post("/", isAuthenticatedApi, hasRoleApi("admin"), powerApiController.create);
+```
+
+### Quién puede hacer qué
+
+| Acción | Visitante | Usuario | Admin |
+| --- | --- | --- | --- |
+| Registrarse e iniciar sesión | Sí | — | — |
+| Ver héroes y poderes | Sí | Sí | Sí |
+| Crear un héroe (el creador es siempre el usuario logueado) | No | Sí | Sí |
+| Editar / borrar un héroe | No | Solo los suyos | Todos |
+| Asignar, quitar o crear poderes desde la ficha del héroe | No | Solo en los suyos | En todos |
+| Crear, editar y borrar poderes del catálogo (`/power`) | No | No | Sí |
+| Ver "Mis héroes" (`/user/me`) | No | Sí | Sí |
+| Gestionar usuarios (`/user`) | No | No | Sí |
+
+- El registro público siempre crea usuarios con rol `user`, aunque se envíe otro rol. Los admins se crean desde la gestión de usuarios (por otro admin) o desde la base de datos.
+- Un usuario puede crear un poder nuevo **desde la ficha de su héroe**, pero editar o borrar poderes del catálogo es solo para el admin. Si preferís que crear poderes también sea solo de admin, basta con añadir `hasRole("admin")` a la ruta `POST /hero/:id/powers/new` (y `hasRoleApi("admin")` a `POST /api/hero/:id/powers`).
+- En las vistas, los botones de editar/borrar solo se muestran a quien puede usarlos (`currentUser` está disponible en todas las vistas), pero **la comprobación de verdad la hacen los middlewares**: esconder un botón no protege nada.
+
+---
+
 ## Estructura del proyecto
 
 ```
@@ -208,6 +271,9 @@ backend_superheroes_segunda/
 │   │   ├── hero.repository.js
 │   │   └── power.repository.js
 │   ├── controllers/
+│   │   ├── auth/
+│   │   │   ├── auth.api.controller.js    # login con JWT
+│   │   │   └── auth.view.controller.js   # login con sesión
 │   │   ├── hero/
 │   │   │   ├── hero.api.controller.js    # res.json(...)
 │   │   │   └── hero.view.controller.js   # res.render(...) / res.redirect(...)
@@ -217,10 +283,14 @@ backend_superheroes_segunda/
 │   │   ├── router.js             # /api -> api, / -> vistas
 │   │   ├── api/
 │   │   └── view/
+│   ├── middlewares/
+│   │   └── auth.middleware.js    # isAuthenticated, hasRole, isHeroOwner (+ versiones Api)
 │   ├── utils/
-│   │   └── errors.js             # traduce errores de Sequelize a mensaje + código HTTP
+│   │   └── errors.js             # clases de error con status (NotFoundError, ForbiddenError...) y throwError
 │   ├── views/                    # plantillas EJS
+│   │   ├── error.ejs             # página de error (403, 404...)
 │   │   ├── layout/               # header, footer, error
+│   │   ├── auth/                 # login, register
 │   │   ├── hero/
 │   │   ├── power/
 │   │   └── user/
@@ -237,96 +307,131 @@ backend_superheroes_segunda/
 
 Todas las respuestas son JSON: `{ "data": ... }` si todo va bien, `{ "error": "mensaje" }` si no. Las respuestas de usuarios **nunca** incluyen la contraseña.
 
+Las rutas protegidas necesitan la cabecera `Authorization: Bearer <token>`.
+
+### Autenticación
+
+| Método | Ruta | Acceso | Descripción |
+| --- | --- | --- | --- |
+| POST | `/api/auth/register` | Público | Crea un usuario con rol `user`: `{ username, email, password }` |
+| POST | `/api/auth/login` | Público | `{ email, password }` → `{ data: { token, user } }` |
+
 ### Héroes
 
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/hero` | Lista con creador, poderes y nivel de utilidad |
-| GET | `/api/hero/:id` | Detalle con creador, poderes y nivel de utilidad |
-| POST | `/api/hero` | Crea un héroe: `{ name, description, userId }` |
-| PUT | `/api/hero/:id` | Sustituye el héroe completo |
-| PATCH | `/api/hero/:id` | Cambia solo los campos enviados |
-| DELETE | `/api/hero/:id` | Borra un héroe |
-| POST | `/api/hero/:id/powers/:powerId` | Asigna un poder existente |
-| POST | `/api/hero/:id/powers` | Crea un poder nuevo `{ name, description, utility_level }` y lo asigna |
-| DELETE | `/api/hero/:id/powers/:powerId` | Quita un poder (el poder sigue existiendo) |
+| Método | Ruta | Acceso | Descripción |
+| --- | --- | --- | --- |
+| GET | `/api/hero` | Público | Lista con creador, poderes y nivel de utilidad |
+| GET | `/api/hero/:id` | Público | Detalle con creador, poderes y nivel de utilidad |
+| POST | `/api/hero` | Usuario | Crea un héroe: `{ name, description }`. El creador sale del token |
+| PUT | `/api/hero/:id` | Creador o admin | Sustituye nombre y descripción |
+| PATCH | `/api/hero/:id` | Creador o admin | Cambia solo los campos enviados |
+| DELETE | `/api/hero/:id` | Creador o admin | Borra un héroe |
+| POST | `/api/hero/:id/powers/:powerId` | Creador o admin | Asigna un poder existente |
+| POST | `/api/hero/:id/powers` | Creador o admin | Crea un poder nuevo `{ name, description, utility_level }` y lo asigna |
+| DELETE | `/api/hero/:id/powers/:powerId` | Creador o admin | Quita un poder (el poder sigue existiendo) |
 
 ### Poderes
 
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/power` | Lista de poderes |
-| GET | `/api/power/:id` | Poder con los héroes que lo tienen |
-| POST | `/api/power` | Crea un poder: `{ name, description, utility_level }` |
-| PUT | `/api/power/:id` | Sustituye el poder completo |
-| PATCH | `/api/power/:id` | Cambia solo los campos enviados |
-| DELETE | `/api/power/:id` | Borra un poder (y se lo quita a todos los héroes) |
+| Método | Ruta | Acceso | Descripción |
+| --- | --- | --- | --- |
+| GET | `/api/power` | Público | Lista de poderes |
+| GET | `/api/power/:id` | Público | Poder con los héroes que lo tienen |
+| POST | `/api/power` | Admin | Crea un poder: `{ name, description, utility_level }` |
+| PUT | `/api/power/:id` | Admin | Sustituye el poder completo |
+| PATCH | `/api/power/:id` | Admin | Cambia solo los campos enviados |
+| DELETE | `/api/power/:id` | Admin | Borra un poder (y se lo quita a todos los héroes) |
 
 ### Usuarios
 
-| Método | Ruta | Descripción |
-| --- | --- | --- |
-| GET | `/api/user` | Lista de usuarios |
-| GET | `/api/user/:id` | Usuario con sus héroes |
-| POST | `/api/user` | Crea un usuario: `{ username, email, password, role }` |
-| PUT | `/api/user/:id` | Sustituye el usuario completo |
-| PATCH | `/api/user/:id` | Cambia solo los campos enviados |
-| DELETE | `/api/user/:id` | Borra un usuario (y sus héroes) |
+| Método | Ruta | Acceso | Descripción |
+| --- | --- | --- | --- |
+| GET | `/api/user/me` | Usuario | El usuario del token, con sus héroes |
+| GET | `/api/user` | Admin | Lista de usuarios |
+| GET | `/api/user/:id` | Admin | Usuario con sus héroes |
+| POST | `/api/user` | Admin | Crea un usuario: `{ username, email, password, role }` |
+| PUT | `/api/user/:id` | Admin | Sustituye el usuario completo |
+| PATCH | `/api/user/:id` | Admin | Cambia solo los campos enviados |
+| DELETE | `/api/user/:id` | Admin | Borra un usuario (y sus héroes) |
 
 ### Códigos de estado
 
 | Código | Cuándo |
 | --- | --- |
 | 200 / 201 | OK / creado |
-| 400 | Datos inválidos (falta un campo, nivel fuera de 1–10, `userId` inexistente…) |
+| 400 | Datos inválidos (falta un campo, nivel fuera de 1–10…) |
+| 401 | Sin token, token inválido o caducado, o credenciales incorrectas |
+| 403 | Autenticado, pero sin permiso (no es admin, o el héroe no es suyo) |
 | 404 | El recurso no existe |
-| 409 | Nombre o email repetido |
+| 409 | Nombre, email o username repetido |
 | 500 | Error inesperado del servidor |
 
 ### Pruébalo con curl
 
 ```bash
-# Crear un héroe para paco (userId 2)
+# Login como paco (todos los usuarios del seed tienen la contraseña 1234)
+curl -X POST http://localhost:3000/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"paco@agencia.test","password":"1234"}'
+
+# Guarda el token de la respuesta
+TOKEN=pega-aqui-el-token
+
+# Sin token no se puede crear un héroe (401)
 curl -X POST http://localhost:3000/api/hero \
   -H "Content-Type: application/json" \
-  -d '{"name":"La Desatascadora","description":"Ningún fregadero se le resiste.","userId":2}'
+  -d '{"name":"La Desatascadora"}'
+
+# Con token sí. El creador será paco, aunque enviaras otro userId en el body
+curl -X POST http://localhost:3000/api/hero \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"La Desatascadora","description":"Ningún fregadero se le resiste."}'
 
 # Asignarle un poder existente (11 es el id del héroe recién creado)
-curl -X POST http://localhost:3000/api/hero/11/powers/10
+curl -X POST http://localhost:3000/api/hero/11/powers/10 \
+  -H "Authorization: Bearer $TOKEN"
 
 # Crear un poder nuevo y asignárselo en el mismo paso
 curl -X POST http://localhost:3000/api/hero/11/powers \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
   -d '{"name":"Desatascar sin químicos","description":"Solo con un desatascador y paciencia.","utility_level":8}'
 
 # Ver el héroe con su nivel de utilidad: (6 + 8) / 2 = 7
 curl http://localhost:3000/api/hero/11
 
-# Intentar crear otro héroe con el mismo nombre (debe dar 409)
-curl -X POST http://localhost:3000/api/hero \
+# Intentar borrar un héroe de marta (403)
+curl -X DELETE http://localhost:3000/api/hero/4 \
+  -H "Authorization: Bearer $TOKEN"
+
+# Intentar crear un poder en el catálogo sin ser admin (403)
+curl -X POST http://localhost:3000/api/power \
   -H "Content-Type: application/json" \
-  -d '{"name":"La Desatascadora","userId":2}'
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"name":"Plegar sábanas bajeras","utility_level":9}'
 ```
 
 ---
 
 ## Rutas web
 
-| Ruta | Página |
-| --- | --- |
-| `/` | Inicio |
-| `/hero` | Listado de héroes |
-| `/hero/new` | Crear héroe |
-| `/hero/:id` | Ficha del héroe: asignar, crear y quitar poderes |
-| `/hero/:id/edit` | Editar héroe |
-| `/power`, `/power/new`, `/power/:id`, `/power/:id/edit` | Lo mismo para poderes |
-| `/user`, `/user/new`, `/user/:id`, `/user/:id/edit` | Lo mismo para usuarios |
+| Ruta | Página | Acceso |
+| --- | --- | --- |
+| `/` | Inicio | Público |
+| `/auth/register`, `/auth/login` | Registro y login | Público |
+| `/auth/logout` | Cerrar sesión | Usuario |
+| `/hero`, `/hero/:id` | Listado y ficha de héroes | Público |
+| `/hero/new` | Crear héroe | Usuario |
+| `/hero/:id/edit`, `/hero/:id/delete` | Editar y borrar héroe | Creador o admin |
+| `/hero/:id/powers…` | Asignar, crear y quitar poderes (desde la ficha) | Creador o admin |
+| `/power`, `/power/:id` | Listado y ficha de poderes | Público |
+| `/power/new`, `/power/:id/edit`, `/power/:id/delete` | Gestionar el catálogo de poderes | Admin |
+| `/user/me` | Mis héroes | Usuario |
+| `/user`, `/user/new`, `/user/:id`, `/user/:id/edit`… | Gestionar usuarios | Admin |
 
 Los formularios HTML solo envían GET y POST, así que editar y borrar se hacen con rutas POST (`/hero/:id/edit`, `/hero/:id/delete`, `/hero/:id/powers/:powerId/delete`…).
 
-Si un formulario falla (nombre repetido, contraseñas que no coinciden…), el controlador vuelve a mostrar el mismo formulario con el mensaje de error y los datos que había escrito el usuario.
-
-Mientras no haya login, el creador de un héroe se elige en un desplegable del formulario. Cuando haya autenticación, saldrá del usuario que ha iniciado sesión.
+Si un formulario falla (nombre repetido, contraseñas que no coinciden…), el controlador vuelve a mostrar el mismo formulario con el mensaje de error y los datos que había escrito el usuario. En el login y el registro, los mensajes llegan por la query (`/auth/login?error=...`) y las vistas los leen de `query`.
 
 ---
 
@@ -336,9 +441,9 @@ Mientras no haya login, el creador de un héroe se elige en un desplegable del f
 - [x] **Fase 2**: CRUD de poderes en la API (modelo + repositorio + controlador + rutas).
 - [x] **Fase 3**: vistas EJS de poderes reutilizando el repositorio.
 - [x] **Fase 4**: héroes y relación N:M con poderes (`include`, asignar y quitar), nivel de utilidad calculado.
-- [ ] **Fase 5**: registro, login con bcrypt, JWT y cookie en la web.
-- [ ] **Fase 6**: el creador del héroe sale del usuario autenticado, comprobación de propiedad y `requireRole('admin')`.
-- [ ] **Extra**: filtro por poder, validación como middleware (por ejemplo, ids no numéricos en la URL), errores centralizados y paginación.
+- [x] **Fase 5**: registro, login con bcrypt, sesión en la web y JWT en la API.
+- [x] **Fase 6**: el creador del héroe sale del usuario autenticado, comprobación de propiedad (`isHeroOwner`) y de rol (`hasRole("admin")`).
+- [ ] **Extra**: filtro por poder, validación como middleware (por ejemplo, ids no numéricos en la URL), middleware de errores centralizado y paginación.
 
 ---
 
@@ -347,9 +452,13 @@ Mientras no haya login, el creador de un héroe se elige en un desplegable del f
 - **Las tablas no existen, están vacías o les falta una columna**: el volumen ya existía antes de cambiar los scripts de `sql/`. Ejecuta `docker compose down -v` y vuelve a arrancar.
 - **`ECONNREFUSED 127.0.0.1:5432` desde la app**: dentro de Docker la BD no está en `localhost`, sino en el contenedor `POSTGRES_HOST`.
 - **`port is already allocated`**: ya tienes algo usando `APP_PORT` o `PGADMIN_PORT`. Páralo o cambia el puerto en el `.env`.
-- **Instalo un paquete y la app no lo encuentra**: instálalo con `docker compose exec app npm install <paquete>` o reconstruye con `docker compose up --build`.
+- **`Cannot find package 'express-session'` (o cualquier paquete nuevo)**: el `node_modules` del contenedor vive en un volumen aparte y no se actualiza solo al cambiar el `package.json`. Ejecuta `docker compose exec app npm install` o reconstruye con `docker compose up --build`.
+- **`secret option required for sessions` o `secretOrPrivateKey must have a value`**: faltan `SESSION_SECRET` o `JWT_SECRET` en el `.env`.
 - **nodemon no recarga al guardar** (Windows/macOS): añade `--legacy-watch` al script `dev` del `package.json`.
 - **`/hero/new` devuelve "héroe no encontrado"**: has declarado `/hero/:id` antes que `/hero/new`.
+- **Cualquiera puede crear héroes a nombre de otro**: estás leyendo `userId` de `req.body`. Debe salir de `req.user.userId`.
+- **El middleware de rol falla con `Cannot read properties of undefined (reading 'role')`**: has puesto `hasRole` antes de `isAuthenticated`, y todavía no existe `req.user`.
+- **La cabecera muestra el usuario equivocado en las vistas de usuarios**: en las vistas, el usuario logueado es `currentUser`; `user` es el usuario que se está mostrando.
 - **El nivel de utilidad del héroe sale vacío**: no has hecho `include` de los poderes al leerlo, y el campo virtual no tiene con qué calcular.
 - **La API devuelve la contraseña**: usa `attributes: { exclude: ['password'] }` en el repositorio.
 - **`column "createdAt" does not exist`**: te falta `underscored: true` en la configuración del modelo.

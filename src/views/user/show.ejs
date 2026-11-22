@@ -3,12 +3,15 @@
 <% if (user) { %>
     <%- include('userCard', { user }) -%>
 
+    <%# /user/me usa esta misma vista: los botones solo los ve un admin %>
+    <% if (currentUser && currentUser.role === "admin") { %>
     <div class="actions">
         <a class="button" href="/user/<%= user.userId %>/edit">Editar</a>
         <form method="post" action="/user/<%= user.userId %>/delete" data-confirm="¿Seguro que quieres eliminar a <%= user.username %>? También se borrarán sus héroes.">
             <button class="danger">Eliminar</button>
         </form>
     </div>
+    <% } %>
 
     <section>
         <h3>Héroes creados</h3>

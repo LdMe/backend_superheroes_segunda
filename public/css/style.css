@@ -145,3 +145,10 @@ button.small {
 .power-list form {
     display: inline;
 }
+
+.message {
+    color: #1e7e34;
+    background-color: #e6f4ea;
+    padding: 0.5rem;
+    border-radius: 4px;
+}

@@ -1,7 +1,14 @@
 import { Router } from "express";
 import heroViewController from "../../controllers/hero/hero.view.controller.js";
+import { isAuthenticated, isHeroOwner } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
+
+// Permisos:
+// - ver héroes: cualquiera
+// - crear héroe: usuario logueado (isAuthenticated)
+// - editar, borrar y gestionar sus poderes: su creador o un admin (isAuthenticated + isHeroOwner)
+// Los middlewares se ejecutan en orden: isHeroOwner necesita el req.user que deja isAuthenticated.
 
 // ------------------ CRUD de hero ----------------------------
 
@@ -9,10 +16,10 @@ const router = Router();
 
 // vista de formulario
 // ¡ojo! tiene que ir antes que "/:id", si no Express tomaría "new" como un id
-router.get("/new", heroViewController.createForm);
+router.get("/new", isAuthenticated, heroViewController.createForm);
 
 // creación de dato
-router.post("/", heroViewController.create);
+router.post("/", isAuthenticated, heroViewController.create);
 
 // ------------------ R (Read)---------------------------------------------
 // lista de héroes
@@ -24,28 +31,28 @@ router.get("/:id", heroViewController.getById);
 // ---------------- U (Update) -----------------------------------
 
 // vista de edición del héroe
-router.get("/:id/edit", heroViewController.updateForm);
+router.get("/:id/edit", isAuthenticated, isHeroOwner, heroViewController.updateForm);
 
 // guardar los cambios
-router.post("/:id/edit", heroViewController.update);
+router.post("/:id/edit", isAuthenticated, isHeroOwner, heroViewController.update);
 
 
 // ------------------------ D (Delete)------------
 // los formularios HTML solo envían GET y POST, por eso borramos con POST
 
-router.post("/:id/delete", heroViewController.remove);
+router.post("/:id/delete", isAuthenticated, isHeroOwner, heroViewController.remove);
 
 
 // ------------------------ Poderes del héroe (N:M) ------------
 
 // asignar un poder existente (el powerId llega en el body)
-router.post("/:id/powers", heroViewController.addPower);
+router.post("/:id/powers", isAuthenticated, isHeroOwner, heroViewController.addPower);
 
 // crear un poder nuevo y asignárselo
-router.post("/:id/powers/new", heroViewController.createPower);
+router.post("/:id/powers/new", isAuthenticated, isHeroOwner, heroViewController.createPower);
 
 // quitar un poder
-router.post("/:id/powers/:powerId/delete", heroViewController.removePower);
+router.post("/:id/powers/:powerId/delete", isAuthenticated, isHeroOwner, heroViewController.removePower);
 
 
 export default router;

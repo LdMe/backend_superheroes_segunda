@@ -1,6 +1,8 @@
 
 import powerRepository from "../../repositories/power.repository.js";
-import { getErrorMessage } from "../../utils/errors.js";
+
+// Crear, editar y borrar poderes solo lo puede hacer un admin:
+// lo comprueba el middleware hasRole("admin") en power.router.js
 
 
 // ------------------ CRUD de power ----------------------------
@@ -19,7 +21,7 @@ const create = async (req, res) => {
         res.redirect("/power/" + power.powerId);
     } catch (error) {
         console.error(error);
-        res.render("power/create", { power: req.body, error: getErrorMessage(error) });
+        res.status(error.status || 500).render("power/create", { power: req.body, error: error.message });
     }
 }
 
@@ -27,18 +29,25 @@ const create = async (req, res) => {
 // ------------------ R (Read)---------------------------------------------
 // lista de poderes
 const getAll = async (req, res) => {
-    const powers = await powerRepository.getAll();
-    res.render("power/list", { powers });
+    try {
+        const powers = await powerRepository.getAll();
+        res.render("power/list", { powers });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).render("power/list", { powers: [] });
+    }
 };
 
 // ficha del poder, con los héroes que lo tienen
 const getById = async (req, res) => {
-    const id = parseInt(req.params.id);
-    const power = await powerRepository.getById(id);
-    if (!power) {
-        return res.status(404).render("power/show", { power: null });
+    try {
+        const id = parseInt(req.params.id);
+        const power = await powerRepository.getById(id);
+        res.render("power/show", { power });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).render("power/show", { power: null });
     }
-    res.render("power/show", { power });
 };
 
 
@@ -46,12 +55,14 @@ const getById = async (req, res) => {
 
 // vista del formulario de edición
 const updateForm = async (req, res) => {
-    const id = parseInt(req.params.id);
-    const power = await powerRepository.getById(id);
-    if (!power) {
-        return res.redirect("/power");
+    try {
+        const id = parseInt(req.params.id);
+        const power = await powerRepository.getById(id);
+        res.render("power/edit", { power, error: null });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).redirect("/power");
     }
-    res.render("power/edit", { power, error: null });
 }
 
 // cambiar el poder por completo
@@ -59,14 +70,10 @@ const update = async (req, res) => {
     const id = parseInt(req.params.id);
     try {
         const power = await powerRepository.update(id, req.body);
-        if (power) {
-            res.redirect("/power/" + power.powerId);
-        } else {
-            res.redirect("/power");
-        }
+        res.redirect("/power/" + power.powerId);
     } catch (error) {
         console.error(error);
-        res.render("power/edit", { power: { ...req.body, powerId: id }, error: getErrorMessage(error) });
+        res.status(error.status || 500).render("power/edit", { power: { ...req.body, powerId: id }, error: error.message });
     }
 }
 
@@ -76,9 +83,14 @@ const update = async (req, res) => {
 // (ON DELETE CASCADE), así que desaparece de todos los héroes que lo tenían
 
 const remove = async (req, res) => {
-    const id = parseInt(req.params.id);
-    await powerRepository.remove(id);
-    res.redirect("/power");
+    try {
+        const id = parseInt(req.params.id);
+        await powerRepository.remove(id);
+        res.redirect("/power");
+    } catch (error) {
+        console.error(error);
+        res.redirect("/power");
+    }
 }
 
 

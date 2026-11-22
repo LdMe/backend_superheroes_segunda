@@ -3,6 +3,7 @@
 <h2>Editar usuario</h2>
 <%- include('../layout/error') -%>
 
+<% if (user) { %>
 <form action="/user/<%= user.userId %>/edit" method="post">
     <label for="username">Nombre de usuario</label>
     <input type="text" name="username" id="username" value="<%= user.username %>" required>
@@ -28,4 +29,7 @@
 </form>
 
 <a href="/user/<%= user.userId %>">Volver</a>
+<% } else { %>
+<a href="/user">Volver</a>
+<% } %>
 <%- include('../layout/footer'); -%>

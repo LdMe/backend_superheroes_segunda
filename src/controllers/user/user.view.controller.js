@@ -60,6 +60,18 @@ const getById = async (req, res) => {
     }
 };
 
+// ficha del usuario logueado ("Mis héroes")
+// es la misma vista que getById, pero el id sale de la sesión y no de la URL
+const me = async (req, res) => {
+    try {
+        const user = await userRepository.getById(req.user.userId);
+        res.render("user/show", { user });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).render("user/show", { user: null });
+    }
+};
+
 
 // ---------------- U (Update) -----------------------------------
 
@@ -118,6 +130,7 @@ export default {
     create,
     getAll,
     getById,
+    me,
     update,
     createForm,
     updateForm,

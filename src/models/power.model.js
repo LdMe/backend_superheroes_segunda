@@ -19,9 +19,10 @@ const Power = connection.define("Power",{
         type: DataTypes.SMALLINT,
         allowNull: false,
         defaultValue: 5,
+        // con { args, msg } personalizamos el mensaje del ValidationError
         validate:{
-            min: 1,
-            max: 10
+            min: { args: [1], msg: "El nivel de utilidad debe estar entre 1 y 10" },
+            max: { args: [10], msg: "El nivel de utilidad debe estar entre 1 y 10" }
         }
     },
 },{

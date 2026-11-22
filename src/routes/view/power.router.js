@@ -1,17 +1,22 @@
 import { Router } from "express";
 import powerViewController from "../../controllers/power/power.view.controller.js";
+import { isAuthenticated, hasRole } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
+
+// Permisos:
+// - ver poderes: cualquiera
+// - crear, editar y borrar poderes del catálogo: solo admin (isAuthenticated + hasRole("admin"))
 
 // ------------------ CRUD de power ----------------------------
 
 // ------------------ C (Create)
 
 // vista de formulario (antes que "/:id")
-router.get("/new", powerViewController.createForm);
+router.get("/new", isAuthenticated, hasRole("admin"), powerViewController.createForm);
 
 // creación de dato
-router.post("/", powerViewController.create);
+router.post("/", isAuthenticated, hasRole("admin"), powerViewController.create);
 
 // ------------------ R (Read)---------------------------------------------
 // lista de poderes
@@ -23,15 +28,15 @@ router.get("/:id", powerViewController.getById);
 // ---------------- U (Update) -----------------------------------
 
 // vista de edición del poder
-router.get("/:id/edit", powerViewController.updateForm);
+router.get("/:id/edit", isAuthenticated, hasRole("admin"), powerViewController.updateForm);
 
 // guardar los cambios
-router.post("/:id/edit", powerViewController.update);
+router.post("/:id/edit", isAuthenticated, hasRole("admin"), powerViewController.update);
 
 
 // ------------------------ D (Delete)------------
 
-router.post("/:id/delete", powerViewController.remove);
+router.post("/:id/delete", isAuthenticated, hasRole("admin"), powerViewController.remove);
 
 
 export default router;

@@ -1,6 +1,8 @@
 
 import userRepository from "../../repositories/user.repository.js";
-import { getErrorMessage, getErrorStatus } from "../../utils/errors.js";
+
+// La gestión de usuarios es solo para admins (hasRoleApi("admin") en user.router.js),
+// salvo GET /api/user/me, que devuelve el usuario del token.
 
 
 // ------------------ CRUD de user ----------------------------
@@ -13,67 +15,81 @@ const create = async (req, res) => {
         res.status(201).json({ data: user });
     } catch (error) {
         console.error(error);
-        res.status(getErrorStatus(error)).json({ error: getErrorMessage(error) });
+        res.status(error.status || 500).json({ error: error.message });
     }
 }
 
 // ------------------ R (Read)---------------------------------------------
 // GET /api/user
 const getAll = async (req, res) => {
-    const users = await userRepository.getAll();
-    res.json({ data: users });
+    try {
+        const users = await userRepository.getAll();
+        res.json({ data: users });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).json({ error: error.message });
+    }
 };
 
 // GET /api/user/:id
 const getById = async (req, res) => {
-    const id = parseInt(req.params.id);
-    const user = await userRepository.getById(id);
-    if (!user) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
+    try {
+        const id = parseInt(req.params.id);
+        const user = await userRepository.getById(id);
+        res.json({ data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).json({ error: error.message });
     }
-    res.json({ data: user });
+};
+
+// GET /api/user/me  -> el usuario del token, con sus héroes
+const me = async (req, res) => {
+    try {
+        const user = await userRepository.getById(req.user.userId);
+        res.json({ data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).json({ error: error.message });
+    }
 };
 
 // ---------------- U (Update) -----------------------------------
 // PUT /api/user/:id  -> cambiar el dato por completo
 const update = async (req, res) => {
-    const id = parseInt(req.params.id);
     try {
+        const id = parseInt(req.params.id);
         const user = await userRepository.update(id, req.body);
-        if (!user) {
-            return res.status(404).json({ error: "Usuario no encontrado" });
-        }
         res.json({ data: user });
     } catch (error) {
         console.error(error);
-        res.status(getErrorStatus(error)).json({ error: getErrorMessage(error) });
+        res.status(error.status || 500).json({ error: error.message });
     }
 }
 
 // PATCH /api/user/:id  -> cambiar solo una parte del dato
 const modify = async (req, res) => {
-    const id = parseInt(req.params.id);
     try {
+        const id = parseInt(req.params.id);
         const user = await userRepository.modify(id, req.body);
-        if (!user) {
-            return res.status(404).json({ error: "Usuario no encontrado" });
-        }
         res.json({ data: user });
     } catch (error) {
         console.error(error);
-        res.status(getErrorStatus(error)).json({ error: getErrorMessage(error) });
+        res.status(error.status || 500).json({ error: error.message });
     }
 }
 
 // ------------------------ D (Delete)------------
 // DELETE /api/user/:id
 const remove = async (req, res) => {
-    const id = parseInt(req.params.id);
-    const user = await userRepository.remove(id);
-    if (!user) {
-        return res.status(404).json({ error: "Usuario no encontrado" });
+    try {
+        const id = parseInt(req.params.id);
+        const user = await userRepository.remove(id);
+        res.json({ data: user });
+    } catch (error) {
+        console.error(error);
+        res.status(error.status || 500).json({ error: error.message });
     }
-    res.json({ data: user });
 }
 
 
@@ -81,6 +97,7 @@ export default {
     create,
     getAll,
     getById,
+    me,
     update,
     modify,
     remove

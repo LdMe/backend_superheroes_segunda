@@ -25,9 +25,12 @@ app.use(session({ // solo para cuando tenemos vistas
     saveUninitialized: false
 }))
 
+// variables disponibles en TODAS las vistas
+// usamos "currentUser" (y no "user") para no chocar con las vistas de usuarios,
+// que reciben el usuario que se está mostrando en una variable "user"
 app.use((req,res,next)=>{
     res.locals.query = req.query;
-    res.locals.user = req.session?.user;
+    res.locals.currentUser = req.session?.user;
     next();
 })
 
