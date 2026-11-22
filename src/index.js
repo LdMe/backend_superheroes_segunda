@@ -4,6 +4,7 @@ import cors from "cors";
 import router from "./routes/router.js";
 import connection from "./config/db.js";
 import session from "express-session";
+import { errorHandler } from "./middlewares/error.middleware.js";
 
 
 dotenv.config();
@@ -40,6 +41,9 @@ app.set("views", "./src/views");
 app.set("view engine", "ejs");
 
 app.use("/", router);
+
+// red de seguridad: errores que no ha capturado ningún controlador (siempre el último)
+app.use(errorHandler);
 
 async function startServer() {
     const maxAttempts = 5;

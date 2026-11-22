@@ -1,8 +1,14 @@
 import { Router } from "express";
 import heroApiController from "../../controllers/hero/hero.api.controller.js";
 import { isAuthenticatedApi, isHeroOwnerApi } from "../../middlewares/auth.middleware.js";
+import { isValidIdApi } from "../../middlewares/validation.middleware.js";
 
 const router = Router();
+
+// si la URL trae un :id o :powerId que no es un número, respondemos 400
+// antes de llegar a los middlewares de permisos o al controlador
+router.param("id", isValidIdApi);
+router.param("powerId", isValidIdApi);
 
 // Permisos (igual que en las vistas, pero con el token JWT):
 // - ver héroes: cualquiera

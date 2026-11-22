@@ -1,8 +1,14 @@
 import { Router } from "express";
 import heroViewController from "../../controllers/hero/hero.view.controller.js";
 import { isAuthenticated, isHeroOwner } from "../../middlewares/auth.middleware.js";
+import { isValidId } from "../../middlewares/validation.middleware.js";
 
 const router = Router();
+
+// si la URL trae un :id o :powerId que no es un número, respondemos 400
+// antes de llegar a los middlewares de permisos o al controlador
+router.param("id", isValidId);
+router.param("powerId", isValidId);
 
 // Permisos:
 // - ver héroes: cualquiera

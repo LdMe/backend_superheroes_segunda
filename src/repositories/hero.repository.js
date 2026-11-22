@@ -57,18 +57,66 @@ const create = async (data) => {
 
 // ------------------ R (Read)---------------------------------------------
 /**
- * Obtener la lista de todos los héroes, con su creador y sus poderes.
+ * @typedef {Object} Pagination
+ * @property {number} page - Página actual (empieza en 1).
+ * @property {number} limit - Héroes por página.
+ * @property {number} total - Total de héroes (con el filtro aplicado).
+ * @property {number} totalPages - Número de páginas.
+ */
+
+/**
+ * Obtener una página de héroes, con su creador y sus poderes.
+ * Opcionalmente, solo los héroes que tienen un poder concreto.
  *
  * @async
- * @returns {Promise<Array<Object>>} Promesa que resuelve con un array de héroes.
+ * @param {Object} [options]
+ * @param {number|null} [options.powerId] - Si se indica, solo héroes con este poder.
+ * @param {number} [options.page=1] - Página que se pide.
+ * @param {number} [options.limit=6] - Héroes por página.
+ * @returns {Promise<{heroes: Array<Object>, pagination: Pagination}>}
+ * @throws {NotFoundError} Si se filtra por un poder que no existe.
+ *
+ * @example
+ * await getAll();                                  // primera página, todos los héroes
+ * await getAll({ powerId: 3, page: 1, limit: 6 }); // héroes con el poder 3
  */
-const getAll = async () => {
+const getAll = async ({ powerId = null, page = 1, limit = 6 } = {}) => {
     try {
-        const heroes = await Hero.findAll({
+        const where = {};
+        if (powerId) {
+            // Filtrar con un "where" dentro del include de poderes no sirve: solo
+            // cargaría ESE poder de cada héroe y la media de utilidad saldría mal.
+            // Por eso primero buscamos qué héroes tienen el poder...
+            const power = await Power.findByPk(powerId, {
+                include: { model: Hero, as: "heroes", attributes: ["heroId"] }
+            });
+            if (!power) {
+                throw new NotFoundError("Poder no encontrado");
+            }
+            // ...y luego pedimos esos héroes con TODOS sus poderes.
+            // Un array en el where se traduce a SQL como: WHERE hero_id IN (1, 4, 9)
+            where.heroId = power.heroes.map(hero => hero.heroId);
+        }
+
+        // findAndCountAll devuelve los registros de la página (rows) y el total (count)
+        const { count, rows } = await Hero.findAndCountAll({
+            where,
             include: HERO_INCLUDE,
-            order: [["heroId", "ASC"]]
+            order: [["heroId", "ASC"]],
+            limit,                      // cuántos héroes como máximo
+            offset: (page - 1) * limit, // cuántos nos saltamos: página 2 con limit 6 -> saltamos 6
+            distinct: true              // contar héroes, no filas del JOIN con los poderes
         });
-        return heroes;
+
+        return {
+            heroes: rows,
+            pagination: {
+                page,
+                limit,
+                total: count,
+                totalPages: Math.ceil(count / limit)
+            }
+        };
     } catch (error) {
         console.error(error);
         throwError(error);

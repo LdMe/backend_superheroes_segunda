@@ -5,10 +5,45 @@
     <a class="button" href="/hero/new">Nuevo héroe</a>
 <% } %>
 
+<%# Filtro por poder. Es un formulario GET: al enviarlo, el navegador va a /hero?power=3 %>
+<form class="filter" action="/hero" method="get">
+    <label for="power">Filtrar por poder</label>
+    <select name="power" id="power">
+        <option value="">Todos los poderes</option>
+        <% for (const power of powers) { %>
+            <option value="<%= power.powerId %>" <%= power.powerId === powerId ? "selected" : "" %>><%= power.name %></option>
+        <% } %>
+    </select>
+    <button>Filtrar</button>
+    <% if (powerId) { %>
+        <a href="/hero">Quitar filtro</a>
+    <% } %>
+</form>
+
+<%- include('../layout/error') -%>
+
+<% if (pagination && pagination.total === 0) { %>
+    <p>No hay héroes<%= powerId ? " con este poder" : "" %>.</p>
+<% } %>
+
 <section class="cards">
     <% for (const hero of heroes) { %>
         <%- include('heroCard', { hero }) -%>
     <% } %>
 </section>
+
+<%# Paginación: los enlaces mantienen el filtro (?power=) si lo hay %>
+<% if (pagination && pagination.totalPages > 1) { %>
+    <% const pageUrl = (page) => "/hero?" + new URLSearchParams(powerId ? { power: powerId, page } : { page }); %>
+    <nav class="pagination">
+        <% if (pagination.page > 1) { %>
+            <a href="<%= pageUrl(pagination.page - 1) %>">&laquo; Anterior</a>
+        <% } %>
+        <span>Página <%= pagination.page %> de <%= pagination.totalPages %> (<%= pagination.total %> héroes)</span>
+        <% if (pagination.page < pagination.totalPages) { %>
+            <a href="<%= pageUrl(pagination.page + 1) %>">Siguiente &raquo;</a>
+        <% } %>
+    </nav>
+<% } %>
 
 <%- include('../layout/footer'); -%>

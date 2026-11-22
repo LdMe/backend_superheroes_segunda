@@ -1,8 +1,13 @@
 import { Router } from "express";
 import userApiController from "../../controllers/user/user.api.controller.js";
 import { isAuthenticatedApi, hasRoleApi } from "../../middlewares/auth.middleware.js";
+import { isValidIdApi } from "../../middlewares/validation.middleware.js";
 
 const router = Router();
+
+// si la URL trae un :id que no es un número, respondemos 400
+// antes de llegar a los middlewares de permisos o al controlador
+router.param("id", isValidIdApi);
 
 // Permisos:
 // - GET /me: cualquier usuario con token

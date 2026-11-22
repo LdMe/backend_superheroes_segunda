@@ -4,7 +4,7 @@ Aplicación web para registrar héroes con poderes poco espectaculares pero muy 
 
 Cualquiera puede consultar héroes y poderes. Los usuarios registrados crean sus héroes (¡pueden tener varios!) y les asignan poderes de un catálogo; el administrador gestiona el catálogo de poderes y los usuarios. Cada poder tiene un nivel de utilidad del 1 al 10, y el nivel de utilidad del héroe se calcula como **la media de sus poderes**.
 
-Proyecto didáctico del módulo de Backend: **Node.js + Express + Sequelize + PostgreSQL + EJS + bcrypt + sesiones + JWT**, todo levantado con **Docker Compose**.
+Proyecto didáctico del módulo de Backend (la memoria técnica completa, con requisitos, casos de uso y diagramas, está en [docs/memoria.md](docs/memoria.md)): **Node.js + Express + Sequelize + PostgreSQL + EJS + bcrypt + sesiones + JWT**, todo levantado con **Docker Compose**.
 
 ---
 
@@ -24,6 +24,9 @@ Proyecto didáctico del módulo de Backend: **Node.js + Express + Sequelize + Po
 | Autenticación en la API | Token JWT en la cabecera `Authorization: Bearer <token>` |
 | Autorización por rol | Middleware `hasRole("admin")`: solo el admin gestiona poderes y usuarios |
 | Autorización por propiedad | Middleware `isHeroOwner`: solo el creador (o el admin) edita o borra un héroe |
+| Validar parámetros de la URL | `router.param("id", isValidId)`: un id no numérico da 400 antes de llegar al controlador |
+| Filtro y paginación | `GET /hero?power=3&page=2`: `findAndCountAll` con `limit`, `offset` y `distinct` |
+| 404 y errores sin capturar | `notFound` al final de cada router y `errorHandler` al final de `index.js` |
 
 ---
 
@@ -284,9 +287,12 @@ backend_superheroes_segunda/
 │   │   ├── api/
 │   │   └── view/
 │   ├── middlewares/
-│   │   └── auth.middleware.js    # isAuthenticated, hasRole, isHeroOwner (+ versiones Api)
+│   │   ├── auth.middleware.js        # isAuthenticated, hasRole, isHeroOwner (+ versiones Api)
+│   │   ├── validation.middleware.js  # isValidId (+ Api), se usa con router.param
+│   │   └── error.middleware.js       # notFound (+ Api) y errorHandler
 │   ├── utils/
-│   │   └── errors.js             # clases de error con status (NotFoundError, ForbiddenError...) y throwError
+│   │   ├── errors.js             # clases de error con status (NotFoundError, ForbiddenError...) y throwError
+│   │   └── query.js              # checkId y lectura de ?power=&page=&limit=
 │   ├── views/                    # plantillas EJS
 │   │   ├── error.ejs             # página de error (403, 404...)
 │   │   ├── layout/               # header, footer, error
@@ -320,7 +326,7 @@ Las rutas protegidas necesitan la cabecera `Authorization: Bearer <token>`.
 
 | Método | Ruta | Acceso | Descripción |
 | --- | --- | --- | --- |
-| GET | `/api/hero` | Público | Lista con creador, poderes y nivel de utilidad |
+| GET | `/api/hero` | Público | Lista paginada con creador, poderes y nivel de utilidad. Opcional: `?power=<id>&page=<n>&limit=<n>` |
 | GET | `/api/hero/:id` | Público | Detalle con creador, poderes y nivel de utilidad |
 | POST | `/api/hero` | Usuario | Crea un héroe: `{ name, description }`. El creador sale del token |
 | PUT | `/api/hero/:id` | Creador o admin | Sustituye nombre y descripción |
@@ -353,15 +359,35 @@ Las rutas protegidas necesitan la cabecera `Authorization: Bearer <token>`.
 | PATCH | `/api/user/:id` | Admin | Cambia solo los campos enviados |
 | DELETE | `/api/user/:id` | Admin | Borra un usuario (y sus héroes) |
 
+### Filtro y paginación del listado de héroes
+
+`GET /api/hero` (y la página `/hero`) acepta tres parámetros opcionales en la query:
+
+| Parámetro | Por defecto | Qué hace |
+| --- | --- | --- |
+| `power` | — | Solo los héroes que tienen ese poder. Si no es un id válido → 400; si el poder no existe → 404 |
+| `page` | `1` | Página que se pide. Si no es válida, vuelve a la 1 |
+| `limit` | `6` | Héroes por página (máximo 50). Con los 10 del seed, salen 2 páginas |
+
+```jsonc
+// GET /api/hero?power=3&page=1
+{
+  "data": [ { "heroId": 3, "name": "El Hombre que Llega Puntual", "utility_level": 6, "powers": [ ... ] }, ... ],
+  "pagination": { "page": 1, "limit": 6, "total": 3, "totalPages": 1 }
+}
+```
+
+Al filtrar, cada héroe sigue trayendo **todos** sus poderes, así que su nivel de utilidad es correcto.
+
 ### Códigos de estado
 
 | Código | Cuándo |
 | --- | --- |
 | 200 / 201 | OK / creado |
-| 400 | Datos inválidos (falta un campo, nivel fuera de 1–10…) |
+| 400 | Datos inválidos (falta un campo, nivel fuera de 1–10, id de la URL que no es un número…) |
 | 401 | Sin token, token inválido o caducado, o credenciales incorrectas |
 | 403 | Autenticado, pero sin permiso (no es admin, o el héroe no es suyo) |
-| 404 | El recurso no existe |
+| 404 | El recurso o el endpoint no existe |
 | 409 | Nombre, email o username repetido |
 | 500 | Error inesperado del servidor |
 
@@ -400,6 +426,10 @@ curl -X POST http://localhost:3000/api/hero/11/powers \
 # Ver el héroe con su nivel de utilidad: (6 + 8) / 2 = 7
 curl http://localhost:3000/api/hero/11
 
+# Héroes con el poder "Puntualidad sobrehumana" (id 3), y segunda página del listado
+curl "http://localhost:3000/api/hero?power=3"
+curl "http://localhost:3000/api/hero?page=2"
+
 # Intentar borrar un héroe de marta (403)
 curl -X DELETE http://localhost:3000/api/hero/4 \
   -H "Authorization: Bearer $TOKEN"
@@ -420,7 +450,7 @@ curl -X POST http://localhost:3000/api/power \
 | `/` | Inicio | Público |
 | `/auth/register`, `/auth/login` | Registro y login | Público |
 | `/auth/logout` | Cerrar sesión | Usuario |
-| `/hero`, `/hero/:id` | Listado y ficha de héroes | Público |
+| `/hero`, `/hero/:id` | Listado (con filtro `?power=` y paginación `?page=`) y ficha de héroes | Público |
 | `/hero/new` | Crear héroe | Usuario |
 | `/hero/:id/edit`, `/hero/:id/delete` | Editar y borrar héroe | Creador o admin |
 | `/hero/:id/powers…` | Asignar, crear y quitar poderes (desde la ficha) | Creador o admin |
@@ -443,7 +473,9 @@ Si un formulario falla (nombre repetido, contraseñas que no coinciden…), el c
 - [x] **Fase 4**: héroes y relación N:M con poderes (`include`, asignar y quitar), nivel de utilidad calculado.
 - [x] **Fase 5**: registro, login con bcrypt, sesión en la web y JWT en la API.
 - [x] **Fase 6**: el creador del héroe sale del usuario autenticado, comprobación de propiedad (`isHeroOwner`) y de rol (`hasRole("admin")`).
-- [ ] **Extra**: filtro por poder, validación como middleware (por ejemplo, ids no numéricos en la URL), middleware de errores centralizado y paginación.
+- [x] **Extra**: filtro por poder, paginación, validación de ids con `router.param` y manejo de 404 / errores sin capturar.
+
+Posibles ampliaciones para vuestros proyectos: búsqueda por texto (`?q=`), ordenación (`?sort=`), subida de imágenes, tests automáticos y despliegue.
 
 ---
 
@@ -459,6 +491,8 @@ Si un formulario falla (nombre repetido, contraseñas que no coinciden…), el c
 - **Cualquiera puede crear héroes a nombre de otro**: estás leyendo `userId` de `req.body`. Debe salir de `req.user.userId`.
 - **El middleware de rol falla con `Cannot read properties of undefined (reading 'role')`**: has puesto `hasRole` antes de `isAuthenticated`, y todavía no existe `req.user`.
 - **La cabecera muestra el usuario equivocado en las vistas de usuarios**: en las vistas, el usuario logueado es `currentUser`; `user` es el usuario que se está mostrando.
+- **El listado filtrado enseña cada héroe con un solo poder y la media mal**: has filtrado con un `where` dentro del `include` de poderes. Busca primero los ids de los héroes que tienen el poder y filtra los héroes por esos ids (ver `heroRepository.getAll`).
+- **El total de la paginación sale más alto de lo que debería**: `findAndCountAll` con un `include` N:M cuenta filas del JOIN. Añade `distinct: true`.
 - **El nivel de utilidad del héroe sale vacío**: no has hecho `include` de los poderes al leerlo, y el campo virtual no tiene con qué calcular.
 - **La API devuelve la contraseña**: usa `attributes: { exclude: ['password'] }` en el repositorio.
 - **`column "createdAt" does not exist`**: te falta `underscored: true` en la configuración del modelo.

@@ -1,6 +1,7 @@
 
 import heroRepository from "../../repositories/hero.repository.js";
 import powerRepository from "../../repositories/power.repository.js";
+import { getHeroListOptions } from "../../utils/query.js";
 
 // Los permisos (token válido, ser el creador o admin) los comprueban
 // los middlewares en hero.router.js: aquí ya sabemos que se puede hacer.
@@ -23,11 +24,13 @@ const create = async (req, res) => {
 }
 
 // ------------------ R (Read)---------------------------------------------
-// GET /api/hero
+// GET /api/hero?power=3&page=1&limit=6
+// filtro opcional por poder y paginación (por defecto, página 1 de 6 en 6)
 const getAll = async (req, res) => {
     try {
-        const heroes = await heroRepository.getAll();
-        res.json({ data: heroes });
+        const options = getHeroListOptions(req.query);
+        const { heroes, pagination } = await heroRepository.getAll(options);
+        res.json({ data: heroes, pagination });
     } catch (error) {
         console.error(error);
         res.status(error.status || 500).json({ error: error.message });

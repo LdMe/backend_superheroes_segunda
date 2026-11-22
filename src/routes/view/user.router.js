@@ -1,8 +1,13 @@
 import { Router } from "express";
 import userViewController from "../../controllers/user/user.view.controller.js";
 import { isAuthenticated, hasRole } from "../../middlewares/auth.middleware.js";
+import { isValidId } from "../../middlewares/validation.middleware.js";
 
 const router = Router();
+
+// si la URL trae un :id que no es un número, respondemos 400
+// antes de llegar a los middlewares de permisos o al controlador
+router.param("id", isValidId);
 
 // Permisos:
 // - "Mis héroes" (/user/me): cualquier usuario logueado
